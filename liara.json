@@ -18,15 +18,13 @@
     "disks": [
         {
             "name": "media",
-            "mountTo": "/app/media"
+            "mountTo": "/app/media",
+            "size": 1
         }
     ],
     "env": {
         "DJANGO_SETTINGS_MODULE": "config.settings.prod",
         "DJANGO_ENV": "prod",
-        "DEBUG": "False",
-        "SECRET_KEY": "temp-secret-key-for-build-only-change-me",
-        "ALLOWED_HOSTS": "arayeshyar.liara.run",
-        "DATABASE_URL": "sqlite:///db.sqlite3"
+        "DEBUG": "False"
     }
 }
