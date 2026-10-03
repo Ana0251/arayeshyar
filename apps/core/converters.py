@@ -8,7 +8,7 @@ from django.urls.converters import StringConverter
 
 
 class UnicodeSlugConverter(StringConverter):
-    """
+    r"""
     Converter سفارشی برای slug با کاراکترهای یونیکد (فارسی).
 
     ─── الگو: ───
