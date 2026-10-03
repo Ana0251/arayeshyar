@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block title %}درخواست نامعتبر — آرایشیار{% endblock %}
+
+{% block content %}
+    <div class="max-w-md mx-auto text-center py-16">
+        <div class="text-8xl font-bold text-warning/30 mb-4">۴۰۰</div>
+        <div class="text-6xl mb-4">⚠️</div>
+        <h1 class="text-2xl font-bold text-primary mb-3">درخواست نامعتبر</h1>
+        <p class="text-darktext/60 mb-8 leading-relaxed">
+            درخواستی که فرستادی نامعتبره یا داده‌هاش مشکل داره.
+        </p>
+        <a href="{% url 'core:home' %}"
+           class="inline-block bg-accent text-primary font-bold px-8 py-3 rounded-xl hover:opacity-90 transition">
+            🏠 بازگشت به خانه
+        </a>
+    </div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{
+    "name": "آرایشیار — نوبت‌دهی آنلاین",
+    "short_name": "آرایشیار",
+    "description": "نوبت‌دهی آنلاین برای کسب‌وکارهای زیبایی — ساده، سریع، بدون تماس تلفنی",
+    "lang": "fa-IR",
+    "dir": "rtl",
+    "start_url": "/",
+    "scope": "/",
+    "display": "standalone",
+    "orientation": "portrait",
+    "theme_color": "#2C3E50",
+    "background_color": "#F5F0EB",
+    "icons": [
+        {
+            "src": "/static/icons/icon-72.png",
+            "sizes": "72x72",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-128.png",
+            "sizes": "128x128",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-152.png",
+            "sizes": "152x152",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-256.png",
+            "sizes": "256x256",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-384.png",
+            "sizes": "384x384",
+            "type": "image/png",
+            "purpose": "any maskable"
+        },
+        {
+            "src": "/static/icons/icon-512.png",
+            "sizes": "512x512",
+            "type": "image/png",
+            "purpose": "any maskable"
+        }
+    ],
+    "shortcuts": [
+        {
+            "name": "نوبت‌های من",
+            "short_name": "نوبت‌ها",
+            "url": "/my-appointments/",
+            "icons": [
+                {
+                    "src": "/static/icons/icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        },
+        {
+            "name": "لیست انتظار من",
+            "short_name": "لیست انتظار",
+            "url": "/my-waiting/",
+            "icons": [
+                {
+                    "src": "/static/icons/icon-96.png",
+                    "sizes": "96x96"
+                }
+            ]
+        }
+    ],
+    "categories": ["beauty", "lifestyle", "business"],
+    "prefer_related_applications": false
+}

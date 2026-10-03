@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}ساعات خاص — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">⭐ ساعات خاص</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            برای یه تاریخ مشخص، ساعت کاری متفاوت از برنامه هفتگی تعیین کن.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">➕ افزودن ساعت خاص</h2>
+        </div>
+
+        <form method="post"
+              class="p-5 space-y-4"
+              hx-post="{% url 'business:manage_special_hours' %}"
+              hx-target="#special-hours-list"
+              hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) this.reset()">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">تاریخ</label>
+                    {{ form.date }}
+                    {% if form.date.errors %}<p class="text-danger text-xs mt-1">{{ form.date.errors.0 }}</p>{% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">ساعت شروع</label>
+                    {{ form.start_time }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">ساعت پایان</label>
+                    {{ form.end_time }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">یادداشت (اختیاری)</label>
+                {{ form.note }}
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">
+                ثبت ساعت خاص
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5">
+            <h2 class="font-bold text-primary">📋 ساعات خاص فعلی</h2>
+        </div>
+
+        {% include 'business/partials/_special_hours_list.html' %}
+    </div>
+
+{% endblock %}

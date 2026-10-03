@@ -1,0 +1,29 @@
+{% load jalali %}
+
+<div id="days-off-list" class="divide-y divide-black/5">
+    {% if days_off %}
+        {% for d in days_off %}
+            <div id="day-off-{{ d.id }}" class="p-4 flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-primary">{{ d.date|to_jalali }}</div>
+                    {% if d.reason %}
+                        <p class="text-sm text-darktext/60 mt-1">📝 {{ d.reason }}</p>
+                    {% endif %}
+                </div>
+
+                <button type="button"
+                        hx-post="{% url 'business:delete_day_off' d.id %}"
+                        hx-target="#day-off-{{ d.id }}"
+                        hx-swap="outerHTML swap:0.3s"
+                        hx-confirm="مطمئنی می‌خوای حذف کنی؟"
+                        class="w-9 h-9 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition font-bold shrink-0">
+                    🗑️
+                </button>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="p-8 text-center text-darktext/50">
+            هنوز روز تعطیلی ثبت نشده.
+        </div>
+    {% endif %}
+</div>

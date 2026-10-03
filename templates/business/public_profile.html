@@ -1,0 +1,208 @@
+{% extends 'base.html' %}
+{% load jalali %}
+
+{% block title %}{{ business.name }} — آرایشیار{% endblock %}
+
+{% block content %}
+
+    {# ─── بازگشت ─── #}
+    <a href="{% url 'core:home' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به لیست کسب‌وکارها
+    </a>
+
+    {# ═══════════════ هدر پروفایل ═══════════════ #}
+    <div class="bg-primary text-white rounded-2xl shadow-md overflow-hidden mb-5">
+        <div class="p-6 flex items-center gap-5 flex-wrap">
+
+            {# آواتار #}
+            {% if business.avatar %}
+                <img src="{{ business.avatar.url }}"
+                     alt="{{ business.name }}"
+                     class="w-20 h-20 rounded-full object-cover ring-4 ring-accent/30 shrink-0">
+            {% else %}
+                <div class="w-20 h-20 rounded-full bg-accent text-primary flex items-center justify-center text-3xl font-bold shrink-0 leading-none select-none">
+                    {{ business.name|slice:":1" }}
+                </div>
+            {% endif %}
+
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h1 class="text-2xl font-bold">{{ business.name }}</h1>
+
+                    {% if business.is_active %}
+                        <span class="bg-success/20 text-success px-3 py-1 rounded-full text-xs font-bold">
+                            ● باز
+                        </span>
+                    {% else %}
+                        <span class="bg-danger/20 text-danger px-3 py-1 rounded-full text-xs font-bold">
+                            ● بسته
+                        </span>
+                    {% endif %}
+
+                    {% if business.has_pro_features %}
+                        <span class="bg-accent text-primary px-3 py-1 rounded-full text-xs font-bold">
+                            ⭐ ویژه
+                        </span>
+                    {% endif %}
+
+                    {% if business.auto_confirm %}
+                        <span class="bg-accent/20 text-accent px-3 py-1 rounded-full text-xs font-bold">
+                            ⚡ تأیید خودکار
+                        </span>
+                    {% endif %}
+                </div>
+
+                <p class="text-sm text-white/70 mt-2">
+                    {% if business.activity_type.icon %}{{ business.activity_type.icon }}{% endif %}
+                    {{ business.activity_type.name }}
+                    {% if business.is_salon %} · 🏢 سالن{% endif %}
+                </p>
+
+                <p class="text-sm text-white/70 mt-1">
+                    📍 {{ business.region }}
+                    {% if business.address %} — {{ business.address }}{% endif %}
+                </p>
+
+                {% if business.bio %}
+                    <p class="text-sm text-white/80 mt-3 leading-relaxed max-w-2xl">
+                        {{ business.bio }}
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    {# ═══════════════ دکمه رزرو ═══════════════ #}
+    {% if business.is_active %}
+        <a href="{% url 'booking:book_by_slug' business.slug %}"
+           class="block text-center bg-accent text-primary font-bold py-4 rounded-2xl hover:opacity-90 active:scale-[0.98] transition mb-5 shadow-md">
+            📅 رزرو نوبت
+        </a>
+    {% else %}
+        <div class="bg-warning/10 border-2 border-warning/30 rounded-2xl p-4 mb-5 text-center">
+            <span class="text-warning font-bold">
+                ⏳ این کسب‌وکار فعلاً پذیرش نوبت نداره.
+            </span>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ ایستگاه‌ها (اگه سالن) ═══════════════ #}
+    {% if business.is_salon and stations %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">📍 ایستگاه‌ها</h2>
+            </div>
+
+            <div class="p-5 space-y-4">
+                {% for station in stations %}
+                    <div>
+                        <div class="flex items-center gap-2 mb-2 pb-2 border-b border-black/5">
+                            <div class="w-8 h-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center shrink-0">
+                                📍
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-primary text-sm">{{ station.name }}</h3>
+                                {% if station.staff_name %}
+                                    <p class="text-xs text-darktext/50">👤 {{ station.staff_name }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        {% if station.services.all %}
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-10">
+                                {% for svc in station.services.all %}
+                                    {% if svc.is_active %}
+                                        <div class="border border-black/5 rounded-xl p-3 flex items-center justify-between gap-2">
+                                            <div class="min-w-0">
+                                                <div class="font-bold text-primary text-sm truncate">{{ svc.name }}</div>
+                                                <div class="text-xs text-darktext/50">⏱️ {{ svc.duration }} دقیقه</div>
+                                            </div>
+                                            {% if svc.price %}
+                                                <div class="text-sm font-bold text-accent shrink-0">
+                                                    {{ svc.price_display }}
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ خدمات عمومی (اگه شخصی یا ایستگاه‌دار نبود) ═══════════════ #}
+    {% if services %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">✂️ خدمات</h2>
+            </div>
+
+            <div class="p-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for svc in services %}
+                    <div class="border border-black/5 rounded-xl p-4 flex items-center justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-primary">{{ svc.name }}</div>
+                            <div class="text-xs text-darktext/60 mt-1">
+                                ⏱️ {{ svc.duration }} دقیقه
+                            </div>
+                        </div>
+                        {% if svc.price %}
+                            <div class="text-sm font-bold text-accent shrink-0">
+                                💰 {{ svc.price_display }}
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ برنامه هفتگی ═══════════════ #}
+    {% if working_hours %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">🗓️ برنامه هفتگی</h2>
+            </div>
+
+            <div class="divide-y divide-black/5">
+                {% for wh in working_hours %}
+                    <div class="p-4 flex items-center justify-between gap-3">
+                        <span class="font-bold text-primary min-w-[70px]">
+                            {{ wh.get_weekday_display }}
+                        </span>
+                        <span class="text-sm text-darktext/70">
+                            {{ wh.start_time|time:"H:i" }} تا {{ wh.end_time|time:"H:i" }}
+                        </span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ روزهای تعطیل آینده ═══════════════ #}
+    {% if upcoming_days_off %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">🚫 روزهای تعطیل آینده</h2>
+            </div>
+
+            <div class="divide-y divide-black/5">
+                {% for d in upcoming_days_off %}
+                    <div class="p-4 flex items-center justify-between gap-3">
+                        <span class="font-bold text-primary">
+                            {{ d.date|to_jalali }}
+                        </span>
+                        {% if d.reason %}
+                            <span class="text-sm text-darktext/60">📝 {{ d.reason }}</span>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+{% endblock %}

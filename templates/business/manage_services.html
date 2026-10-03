@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+
+{% block title %}خدمات — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">✂️ خدمات</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            خدماتی که ارائه میدی رو اینجا تعریف کن. مشتری‌ها از همین لیست انتخاب می‌کنن.
+        </p>
+    </div>
+
+    {# فرم افزودن #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">➕ افزودن خدمت جدید</h2>
+        </div>
+
+        <form method="post"
+              class="p-5 space-y-4"
+              hx-post="{% url 'business:manage_services' %}"
+              hx-target="#services-list"
+              hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) this.reset()">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                    {% for error in form.non_field_errors %}
+                        <p>⚠️ {{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">نام خدمت</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                    <p class="text-danger text-xs mt-1">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">مدت (دقیقه)</label>
+                    {{ form.duration }}
+                    {% if form.duration.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.duration.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">قیمت (تومان) — اختیاری</label>
+                    {{ form.price }}
+                    {% if form.price.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.price.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                {{ form.is_active }}
+                <label class="text-sm font-bold text-darktext">فعال باشه</label>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">
+                ثبت خدمت
+            </button>
+        </form>
+    </div>
+
+    {# لیست خدمات #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5">
+            <h2 class="font-bold text-primary">📋 خدمات فعلی</h2>
+        </div>
+
+        {% include 'business/partials/_services_list.html' %}
+    </div>
+
+{% endblock %}

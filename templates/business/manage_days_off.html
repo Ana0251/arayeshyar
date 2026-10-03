@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}روزهای تعطیل — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">🚫 روزهای تعطیل</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            تاریخ‌هایی که می‌خوای تعطیل باشی رو اینجا ثبت کن.
+        </p>
+    </div>
+
+    {# فرم افزودن #}
+    <div class="bg-white rounded-2xl shadow-md mb-5">
+        <div class="bg-primary text-white px-5 py-3 rounded-t-2xl">
+            <h2 class="font-bold">➕ افزودن روز تعطیل</h2>
+        </div>
+
+        <form method="post"
+              class="p-5 space-y-4"
+              hx-post="{% url 'business:manage_days_off' %}"
+              hx-target="#days-off-list"
+              hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) this.reset()">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">تاریخ</label>
+                    {{ form.date }}
+                    {% if form.date.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">دلیل (اختیاری)</label>
+                    {{ form.reason }}
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">
+                ثبت روز تعطیل
+            </button>
+        </form>
+    </div>
+
+    {# لیست #}
+    <div class="bg-white rounded-2xl shadow-md">
+        <div class="bg-cream px-5 py-3 border-b border-black/5 rounded-t-2xl">
+            <h2 class="font-bold text-primary">📋 روزهای تعطیل فعلی</h2>
+        </div>
+
+        {% include 'business/partials/_days_off_list.html' %}
+    </div>
+
+{% endblock %}

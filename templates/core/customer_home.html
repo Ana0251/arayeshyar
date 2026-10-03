@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load jalali %}
+
+{% block title %}خانه — آرایشیار{% endblock %}
+
+{% block content %}
+
+    {# سلام #}
+    <div class="bg-primary text-white rounded-2xl shadow-md p-5 mb-5">
+        <div class="flex items-center gap-4">
+            <div class="w-16 h-16 rounded-full bg-accent text-primary flex items-center justify-center text-2xl font-bold shrink-0 leading-none select-none">
+                {{ user.display_name|slice:":1" }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h1 class="font-bold text-xl">سلام {{ user.display_name }}! 👋</h1>
+                <p class="text-sm text-white/70 mt-1">
+                    به آرایشیار خوش آمدی
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {# پیام موقت — بعداً پر میشه #}
+    <div class="bg-white rounded-2xl shadow-md p-8 text-center">
+        <div class="text-4xl mb-3">🎉</div>
+        <h2 class="font-bold text-primary text-lg mb-2">حساب شما آماده‌ست!</h2>
+        <p class="text-sm text-darktext/60">
+            بخش‌های بعدی به‌زودی اضافه میشن.
+        </p>
+    </div>
+
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ثبت‌نام — اطلاعات پایه{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto">
+
+    {# Progress Bar #}
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-primary">مرحله ۵ از ۵</span>
+            <span class="text-xs text-darktext/60">۱۰۰٪</span>
+        </div>
+        <div class="bg-cream rounded-full h-2 overflow-hidden">
+            <div class="bg-success h-full rounded-full transition-all" style="width: 100%"></div>
+        </div>
+    </div>
+
+    {# عنوان #}
+    <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-full bg-success/20 text-success flex items-center justify-center text-3xl mx-auto mb-3">
+            {% if is_salon %}🏢{% else %}👤{% endif %}
+        </div>
+        <h1 class="text-2xl font-bold text-primary">
+            {% if is_salon %}اطلاعات سالنت{% else %}اطلاعات شخصی{% endif %}
+        </h1>
+        <p class="text-sm text-darktext/60 mt-2 leading-relaxed">
+            آخرین مرحله! اطلاعات پایه رو وارد کن تا پروفایلت ساخته بشه.
+        </p>
+    </div>
+
+    {# فرم #}
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        {% csrf_token %}
+
+        {# خطاها #}
+        {% if form.non_field_errors %}
+            <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                {% for error in form.non_field_errors %}<p>⚠️ {{ error }}</p>{% endfor %}
+            </div>
+        {% endif %}
+
+        {# اطلاعات اصلی #}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3">
+                <h2 class="font-bold">📝 اطلاعات اصلی</h2>
+            </div>
+
+            <div class="p-5 space-y-4">
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {% if is_salon %}اسم سالن{% else %}نام و نام خانوادگی{% endif %}
+                            <span class="text-danger">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<p class="text-danger text-xs mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            شماره موبایل
+                        </label>
+                        <input type="text"
+                               value="{{ request.user.phone }}"
+                               disabled
+                               dir="ltr"
+                               class="w-full px-4 py-3 rounded-xl border border-black/10 bg-cream/50 text-center font-mono text-darktext/60">
+                        <p class="text-xs text-darktext/50 mt-1">
+                            شماره‌ی حسابت (قابل تغییر نیست)
+                        </p>
+                    </div>
+                </div>
+
+                {% if is_salon %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">اسم صاحب سالن</label>
+                            {{ form.owner_name }}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">تلفن ثابت</label>
+                            {{ form.landline }}
+                        </div>
+                    </div>
+                {% else %}
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">اسم صاحب کسب‌وکار (اختیاری)</label>
+                        {{ form.owner_name }}
+                    </div>
+                {% endif %}
+
+            </div>
+        </div>
+
+        {# آدرس #}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3">
+                <h2 class="font-bold">📍 آدرس</h2>
+            </div>
+
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        منطقه <span class="text-danger">*</span>
+                    </label>
+                    {{ form.region }}
+                    {% if form.region.errors %}<p class="text-danger text-xs mt-1">{{ form.region.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        آدرس دقیق <span class="text-danger">*</span>
+                    </label>
+                    {{ form.address }}
+                    {% if form.address.errors %}<p class="text-danger text-xs mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# درباره #}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3">
+                <h2 class="font-bold">📖 درباره {% if is_salon %}سالن{% else %}خودت{% endif %} (اختیاری)</h2>
+            </div>
+
+            <div class="p-5">
+                {{ form.bio }}
+                {% if form.bio.errors %}<p class="text-danger text-xs mt-1">{{ form.bio.errors.0 }}</p>{% endif %}
+                <p class="text-xs text-darktext/50 mt-1">حداکثر ۵۰۰ کاراکتر</p>
+            </div>
+        </div>
+
+        {# آواتار #}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3">
+                <h2 class="font-bold">📷 عکس پروفایل (اختیاری)</h2>
+            </div>
+
+            <div class="p-5" x-data="avatarPreview()">
+                <div class="flex items-center gap-5 flex-wrap">
+                    <div class="shrink-0">
+                        <template x-if="previewUrl">
+                            <img :src="previewUrl"
+                                 alt="پیش‌نمایش"
+                                 class="w-24 h-24 rounded-full object-cover ring-4 ring-accent/30">
+                        </template>
+                        <template x-if="!previewUrl">
+                            <div class="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center text-3xl font-bold ring-4 ring-accent/30">
+                                📷
+                            </div>
+                        </template>
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <label for="avatar-input"
+                               class="inline-block bg-primary text-white font-bold px-5 py-3 rounded-xl hover:opacity-90 transition cursor-pointer">
+                            📁 انتخاب عکس
+                        </label>
+
+                        <input type="file"
+                               name="avatar"
+                               id="avatar-input"
+                               accept="image/*"
+                               @change="handleFileChange($event)"
+                               class="hidden">
+
+                        <p class="text-xs text-darktext/50 mt-2">JPG, PNG · حداکثر ۲ مگابایت</p>
+                        <p class="text-xs text-accent font-bold mt-2" x-show="fileName" x-text="fileName"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {# اسناد (فقط سالن) #}
+        {% if is_salon %}
+            <div class="bg-white rounded-2xl shadow-md overflow-hidden border-2 border-warning/30">
+                <div class="bg-warning/10 text-warning px-5 py-3 border-b border-warning/30">
+                    <h2 class="font-bold flex items-center gap-2">
+                        📄 اسناد سالن
+                        <span class="text-xs bg-warning text-white px-2 py-0.5 rounded-full">الزامی</span>
+                    </h2>
+                </div>
+
+                <div class="p-5 space-y-4">
+                    <div class="bg-warning/5 rounded-xl p-3 text-xs text-darktext/70 leading-relaxed">
+                        💡 این اسناد فقط توی پنل خودت و پنل ادمین قابل مشاهده‌ان (عمومی نیستن).
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">📜 عکس پروانه کسب</label>
+                        {{ form.business_license }}
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">🏪 عکس ورودی و تابلو</label>
+                        {{ form.entrance_photo }}
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        {# هشدار تأیید #}
+        <div class="bg-accent/10 border-2 border-accent/30 rounded-2xl p-5">
+            <div class="flex items-start gap-3">
+                <div class="text-3xl shrink-0">⏳</div>
+                <div class="flex-1 text-sm text-darktext/80 leading-relaxed">
+                    <strong class="text-accent">توجه:</strong>
+                    بعد از ثبت، پروفایلت به وضعیت <strong>«در انتظار تأیید»</strong> میره.
+                    مدیر بررسی می‌کنه و معمولاً کمتر از ۲۴ ساعت تأیید میشه.
+                </div>
+            </div>
+        </div>
+
+        {# دکمه‌ها #}
+        <div class="flex gap-3">
+            {% if is_salon %}
+                <a href="{% url 'business:register_stations' %}"
+                   class="px-5 bg-white text-darktext/70 font-bold rounded-xl hover:bg-cream transition border border-black/10 py-3.5">
+                    ← قبلی
+                </a>
+            {% else %}
+                <a href="{% url 'business:register_services' %}"
+                   class="px-5 bg-white text-darktext/70 font-bold rounded-xl hover:bg-cream transition border border-black/10 py-3.5">
+                    ← قبلی
+                </a>
+            {% endif %}
+            <button type="submit"
+                    class="flex-1 bg-success text-white font-bold py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition">
+                ✅ ثبت نهایی
+            </button>
+        </div>
+
+    </form>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/avatar-preview.js' %}"></script>
+{% endblock %}

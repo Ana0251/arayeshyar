@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}آفلاین — آرایشیار{% endblock %}
+
+{% block content %}
+
+<div class="max-w-md mx-auto text-center bg-white rounded-2xl shadow-md p-8 my-12">
+
+    {# ─── آیکون ─── #}
+    <div class="text-7xl mb-6">📡</div>
+
+    {# ─── پیام ─── #}
+    <h1 class="text-2xl font-bold text-primary mb-3">
+        اتصال اینترنت قطع شده
+    </h1>
+
+    <p class="text-darktext/60 mb-8 leading-relaxed">
+        لطفاً اتصال اینترنتت رو چک کن و دوباره امتحان کن.
+    </p>
+
+    {# ─── دکمه‌ها ─── #}
+    <button onclick="window.location.reload()"
+            class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition mb-3">
+        🔄 تلاش دوباره
+    </button>
+
+    <a href="/"
+       class="block text-sm text-darktext/60 hover:text-accent transition">
+        ← بازگشت به خانه
+    </a>
+
+</div>
+
+{% endblock %}

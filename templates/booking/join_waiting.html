@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}لیست انتظار — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <div class="max-w-2xl mx-auto">
+
+        {# بازگشت #}
+        <a href="{% url 'booking:book' business.slug %}"
+           class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+            ← بازگشت به صفحه رزرو
+        </a>
+
+        {# کارت کسب‌وکار #}
+        <div class="bg-white rounded-2xl shadow-md p-5 mb-5 flex items-center gap-4">
+            {% if business.avatar %}
+                <img src="{{ business.avatar.url }}"
+                     alt="{{ business.name }}"
+                     class="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-accent/30">
+            {% else %}
+                <div class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center text-xl font-bold shrink-0 leading-none">
+                    {{ business.name|slice:":1" }}
+                </div>
+            {% endif %}
+
+            <div class="flex-1 min-w-0">
+                <h1 class="font-bold text-lg text-primary">{{ business.name }}</h1>
+                <p class="text-sm text-darktext/60 mt-1 truncate">📍 {{ business.region }}</p>
+            </div>
+        </div>
+
+        {# توضیح #}
+        <div class="bg-warning/10 border-2 border-warning/30 rounded-2xl p-5 mb-5">
+            <div class="flex items-start gap-3">
+                <div class="text-3xl shrink-0">⏳</div>
+                <div class="flex-1 text-sm text-darktext/80 leading-relaxed">
+                    <div class="font-bold text-warning text-base mb-2">
+                        لیست انتظار چطور کار می‌کنه؟
+                    </div>
+                    <p class="mb-2">
+                        اگه ساعت مورد نظرت پره، اینجا ثبت کن.
+                        به‌محض آزاد شدن یه ساعت توی اون روز، بهت اطلاع می‌دیم.
+                    </p>
+                    <ul class="list-disc pr-5 space-y-1 text-xs">
+                        <li>می‌تونی ساعت ترجیحی رو هم وارد کنی (اختیاری)</li>
+                        <li>نوبتت تضمینی نیست، ولی اولویت پیدا می‌کنی</li>
+                        <li>اگه ساعتی آزاد شد، بهت اطلاع داده میشه</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {# فرم #}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3">
+                <h2 class="font-bold">📝 ثبت در لیست انتظار</h2>
+            </div>
+
+            <form method="post" class="p-5 space-y-4">
+                {% csrf_token %}
+
+                {% if form.non_field_errors %}
+                    <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                        {% for error in form.non_field_errors %}<p>⚠️ {{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+
+                {# خدمت #}
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        خدمت <span class="text-danger">*</span>
+                    </label>
+                    <select name="service_id"
+                            required
+                            class="w-full px-4 py-3 rounded-xl border border-black/10 bg-white
+                                   focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition">
+                        <option value="">— انتخاب کن —</option>
+                        {% for svc in services %}
+                            <option value="{{ svc.id }}">{{ svc.name }} ({{ svc.duration }} دقیقه)</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                {# تاریخ و ساعت #}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {{ form.date.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.date }}
+                        {% if form.date.errors %}<p class="text-danger text-xs mt-1">{{ form.date.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {{ form.preferred_time.label }}
+                        </label>
+                        {{ form.preferred_time }}
+                    </div>
+                </div>
+
+                {# یادداشت #}
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        {{ form.note.label }}
+                    </label>
+                    {{ form.note }}
+                </div>
+
+                {# دکمه #}
+                <div class="pt-2">
+                    <button type="submit"
+                            class="w-full bg-warning text-white font-bold py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition">
+                        ⏳ ثبت در لیست انتظار
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+{% endblock %}

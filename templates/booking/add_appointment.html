@@ -1,0 +1,134 @@
+{% extends 'base.html' %}
+
+{% block title %}نوبت جدید — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">➕ نوبت جدید</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            نوبت‌های تلفنی یا حضوری رو اینجا ثبت کن.
+        </p>
+    </div>
+
+    {# هشدار #}
+    <div class="bg-primary/5 border border-primary/20 rounded-2xl p-4 mb-5">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl shrink-0">💡</div>
+            <div class="text-sm text-darktext/80 leading-relaxed">
+                <strong class="text-primary">نکته:</strong>
+                توی این فرم می‌تونی هر ساعتی نوبت بذاری، حتی اگه تداخل داشته باشه.
+            </div>
+        </div>
+    </div>
+
+    {# فرم #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">📝 اطلاعات نوبت</h2>
+        </div>
+
+        <form method="post" class="p-5 space-y-5">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                    {% for error in form.non_field_errors %}<p>⚠️ {{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+
+            {# اطلاعات مشتری #}
+            <div>
+                <h3 class="text-sm font-bold text-primary mb-3 pb-2 border-b border-black/5">
+                    👤 اطلاعات مشتری
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {{ form.customer_phone.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.customer_phone }}
+                        {% if form.customer_phone.errors %}
+                            <p class="text-danger text-xs mt-1">{{ form.customer_phone.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {{ form.customer_name.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.customer_name }}
+                        {% if form.customer_name.errors %}
+                            <p class="text-danger text-xs mt-1">{{ form.customer_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            {# زمان #}
+            <div>
+                <h3 class="text-sm font-bold text-primary mb-3 pb-2 border-b border-black/5">
+                    ⏰ زمان
+                </h3>
+
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        {{ form.start_at.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.start_at }}
+                    {% if form.start_at.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.start_at.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# خدمت و وضعیت #}
+            <div>
+                <h3 class="text-sm font-bold text-primary mb-3 pb-2 border-b border-black/5">
+                    ✂️ خدمت
+                </h3>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {{ form.service_id.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.service_id }}
+                        {% if form.service_id.errors %}
+                            <p class="text-danger text-xs mt-1">{{ form.service_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            {{ form.status.label }}
+                        </label>
+                        {{ form.status }}
+                    </div>
+                </div>
+            </div>
+
+            {# یادداشت #}
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">
+                    {{ form.customer_note.label }}
+                </label>
+                {{ form.customer_note }}
+            </div>
+
+            {# دکمه #}
+            <div class="pt-2">
+                <button type="submit"
+                        class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 transition">
+                    ✅ ثبت نوبت
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+{% endblock %}

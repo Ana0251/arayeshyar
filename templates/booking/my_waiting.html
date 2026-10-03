@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load jalali %}
+
+{% block title %}لیست انتظار من — آرایشیار{% endblock %}
+
+{% block content %}
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">⏳ لیست انتظار من</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            درخواست‌هایی که برای لیست انتظار ثبت کردی.
+        </p>
+    </div>
+
+    <div class="space-y-3">
+        {% for item in items %}
+            <div class="bg-white rounded-2xl shadow-sm p-4 border-r-4
+                        {% if item.status == 'waiting' %}border-warning
+                        {% elif item.status == 'notified' %}border-success
+                        {% elif item.status == 'converted' %}border-primary
+                        {% else %}border-darktext/20{% endif %}">
+
+                <div class="flex items-start gap-3">
+                    <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold shrink-0 leading-none">
+                        {{ item.business.name|slice:":1" }}
+                    </div>
+
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h3 class="font-bold text-primary">{{ item.business.name }}</h3>
+
+                            {% if item.status == 'waiting' %}
+                                <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">در انتظار</span>
+                            {% elif item.status == 'notified' %}
+                                <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">اطلاع داده شده</span>
+                            {% elif item.status == 'converted' %}
+                                <span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">تبدیل به نوبت</span>
+                            {% elif item.status == 'expired' %}
+                                <span class="text-xs bg-darktext/10 text-darktext/60 px-2 py-0.5 rounded-full font-bold">منقضی</span>
+                            {% else %}
+                                <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">لغو شده</span>
+                            {% endif %}
+                        </div>
+
+                        <p class="text-xs text-darktext/60 mt-1">📍 {{ item.business.region }}</p>
+
+                        <div class="flex items-center gap-3 mt-2 text-sm text-darktext flex-wrap">
+                            <span>📅 {{ item.date|to_jalali }}</span>
+                            {% if item.preferred_time %}
+                                <span>⏰ {{ item.preferred_time|time:"H:i" }}</span>
+                            {% endif %}
+                            <span class="text-darktext/60">✂️ {{ item.service_name_snapshot }}</span>
+                        </div>
+
+                        {% if item.note %}
+                            <p class="text-xs text-darktext/50 mt-1">📝 {{ item.note }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% empty %}
+            <div class="bg-white rounded-2xl shadow-md p-10 text-center">
+                <div class="text-4xl mb-3">⏳</div>
+                <p class="text-darktext/60 mb-2">هنوز توی هیچ لیست انتظاری ثبت نشدی.</p>
+                <a href="{% url 'core:home' %}"
+                   class="inline-block mt-2 text-accent font-bold hover:underline">
+                    برو به لیست کسب‌وکارها →
+                </a>
+            </div>
+        {% endfor %}
+    </div>
+
+{% endblock %}

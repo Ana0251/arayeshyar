@@ -1,0 +1,98 @@
+{% load jalali %}
+
+{# ═══════════════ در انتظار ═══════════════ #}
+<div id="waiting-list" class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+    <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between">
+        <h2 class="font-bold text-primary">⏳ در انتظار</h2>
+        <span class="text-xs text-darktext/60">{{ waiting|length }} نفر</span>
+    </div>
+
+    {% if waiting %}
+        <div class="divide-y divide-black/5">
+            {% for item in waiting %}
+                <div id="waiting-{{ item.id }}" class="p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-warning/20 text-warning flex items-center justify-center font-bold shrink-0">
+                            {{ item.customer.display_name|slice:":1" }}
+                        </div>
+
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <span class="font-bold text-darktext">{{ item.customer.display_name }}</span>
+                                <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">در انتظار</span>
+                            </div>
+
+                            <p class="text-xs text-darktext/60 mt-1">
+                                📅 {{ item.date|to_jalali }}
+                                {% if item.preferred_time %} · ⏰ {{ item.preferred_time|time:"H:i" }}{% endif %}
+                                · ✂️ {{ item.service_name_snapshot }}
+                            </p>
+
+                            <p class="text-xs text-darktext/60 mt-0.5">
+                                📞 {{ item.customer.phone }}
+                            </p>
+
+                            {% if item.note %}
+                                <p class="text-xs text-darktext/50 mt-1">📝 {{ item.note }}</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="flex flex-col gap-1 shrink-0">
+                            <a href="{% url 'booking:convert_waiting_to_appointment' item.id %}"
+                               class="px-3 h-9 rounded-lg bg-success text-white hover:opacity-90 transition font-bold text-xs flex items-center justify-center gap-1">
+                                <span>✓</span>
+                                <span class="hidden sm:inline">تبدیل به نوبت</span>
+                            </a>
+
+                            <button type="button"
+                                    hx-post="{% url 'booking:update_waiting_status' item.id 'cancelled' %}"
+                                    hx-target="#waiting-{{ item.id }}"
+                                    hx-swap="outerHTML swap:0.3s"
+                                    hx-confirm="مطمئنی می‌خوای لغو کنی؟"
+                                    class="w-full h-9 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition font-bold">
+                                ✕
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="p-8 text-center text-darktext/50">
+            کسی توی لیست انتظار نیست. ✅
+        </div>
+    {% endif %}
+</div>
+
+{# ═══════════════ گذشته ═══════════════ #}
+{% if past %}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5">
+            <h2 class="font-bold text-primary">📜 گذشته</h2>
+        </div>
+
+        <div class="divide-y divide-black/5">
+            {% for item in past %}
+                <div class="p-4 flex items-center gap-3 text-sm">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-darktext">{{ item.customer.display_name }}</span>
+                            {% if item.status == 'notified' %}
+                                <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">اطلاع داده شده</span>
+                            {% elif item.status == 'converted' %}
+                                <span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-bold">تبدیل شد</span>
+                            {% elif item.status == 'expired' %}
+                                <span class="text-xs bg-darktext/10 text-darktext/60 px-2 py-0.5 rounded-full font-bold">منقضی</span>
+                            {% elif item.status == 'cancelled' %}
+                                <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">لغو شده</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-xs text-darktext/60 mt-1">
+                            📅 {{ item.date|to_jalali }} · ✂️ {{ item.service_name_snapshot }}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endif %}

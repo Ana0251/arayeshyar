@@ -1,0 +1,32 @@
+{% load jalali %}
+
+<div id="special-hours-list" class="divide-y divide-black/5">
+    {% if specials %}
+        {% for sp in specials %}
+            <div id="special-{{ sp.id }}" class="p-4 flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="font-bold text-primary">{{ sp.date|to_jalali }}</div>
+                    <p class="text-sm text-darktext/70 mt-1">
+                        ⏰ {{ sp.start_time|time:"H:i" }} تا {{ sp.end_time|time:"H:i" }}
+                    </p>
+                    {% if sp.note %}
+                        <p class="text-xs text-darktext/60 mt-1">📝 {{ sp.note }}</p>
+                    {% endif %}
+                </div>
+
+                <button type="button"
+                        hx-post="{% url 'business:delete_special_hours' sp.id %}"
+                        hx-target="#special-{{ sp.id }}"
+                        hx-swap="outerHTML swap:0.3s"
+                        hx-confirm="مطمئنی می‌خوای حذف کنی؟"
+                        class="w-9 h-9 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition font-bold shrink-0">
+                    🗑️
+                </button>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="p-8 text-center text-darktext/50">
+            هنوز ساعت خاصی ثبت نشده.
+        </div>
+    {% endif %}
+</div>

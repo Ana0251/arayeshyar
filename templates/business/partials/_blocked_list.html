@@ -1,0 +1,32 @@
+<div id="blocked-list" class="divide-y divide-black/5">
+    {% if blocked %}
+        {% for item in blocked %}
+            <div id="blocked-{{ item.id }}" class="p-4 flex items-center justify-between gap-3">
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-darktext" dir="ltr">{{ item.phone }}</span>
+                        {% if item.name %}
+                            <span class="text-sm text-darktext/60">— {{ item.name }}</span>
+                        {% endif %}
+                    </div>
+                    {% if item.reason %}
+                        <p class="text-xs text-darktext/50 mt-1">📝 {{ item.reason }}</p>
+                    {% endif %}
+                </div>
+
+                <button type="button"
+                        hx-post="{% url 'business:delete_blocked' item.id %}"
+                        hx-target="#blocked-{{ item.id }}"
+                        hx-swap="outerHTML swap:0.3s"
+                        hx-confirm="مطمئنی می‌خوای از لیست سیاه حذف کنی؟"
+                        class="text-xs bg-success/10 text-success font-bold px-3 py-2 rounded-lg hover:bg-success hover:text-white transition shrink-0">
+                    ✓ رفع بلاک
+                </button>
+            </div>
+        {% endfor %}
+    {% else %}
+        <div class="p-8 text-center text-darktext/50">
+            لیست سیاه خالیه.
+        </div>
+    {% endif %}
+</div>

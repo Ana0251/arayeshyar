@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ویرایش پروفایل — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">👤 ویرایش پروفایل</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            اطلاعات شخصی و عکس پروفایلت رو اینجا ویرایش کن.
+        </p>
+    </div>
+
+    {# هشدار فیلدهای حساس #}
+    <div class="bg-warning/10 border-2 border-warning/40 rounded-2xl p-5 mb-5">
+        <div class="flex items-start gap-3">
+            <div class="text-3xl shrink-0">⚠️</div>
+            <div class="flex-1">
+                <div class="font-bold text-warning text-lg mb-2">
+                    توجه: تغییرات فیلدهای حساس نیاز به تأیید مدیر داره
+                </div>
+                <p class="text-sm text-darktext/80 leading-relaxed">
+                    برای جلوگیری از محتوای نامناسب، این فیلدها بعد از ویرایش، به‌عنوان درخواست به مدیر ارسال میشن:
+                </p>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs mt-3">
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 نام</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 آدرس</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 منطقه</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 درباره ما</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 عکس پروفایل</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 پروانه کسب</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-warning/30">🔒 عکس ورودی</div>
+                    <div class="bg-white rounded-lg px-3 py-2 text-center border border-success/30">✅ تلفن ثابت</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {# درخواست‌های معلق #}
+    {% if pending_requests %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5 border-2 border-warning/30">
+            <div class="bg-warning/10 px-5 py-3 border-b border-warning/30 flex items-center justify-between">
+                <h2 class="font-bold text-warning flex items-center gap-2">
+                    ⏳ درخواست‌های در انتظار
+                    <span class="bg-warning text-white text-xs font-bold rounded-full px-2 py-0.5">
+                        {{ pending_requests|length }}
+                    </span>
+                </h2>
+                <a href="{% url 'business:my_change_requests' %}"
+                   class="text-xs text-warning font-bold hover:underline">
+                    مشاهده همه →
+                </a>
+            </div>
+
+            <div class="divide-y divide-black/5">
+                {% for req in pending_requests %}
+                    <div class="p-4 flex items-center justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <span class="font-bold text-darktext">
+                                {{ req.get_field_name_display }}
+                            </span>
+                            <span class="text-xs text-darktext/50 mr-2">
+                                📅 {{ req.created_at|date:"Y/m/d H:i" }}
+                            </span>
+                        </div>
+                        <button type="button"
+                                hx-post="{% url 'business:cancel_change_request' req.id %}"
+                                hx-target="closest div"
+                                hx-swap="outerHTML swap:0.3s"
+                                hx-confirm="لغو این درخواست؟"
+                                class="shrink-0 w-9 h-9 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition">
+                            ✕
+                        </button>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# فرم ویرایش #}
+    <form method="post" enctype="multipart/form-data" class="space-y-5">
+        {% csrf_token %}
+
+        {# آواتار #}
+        <div class="bg-white rounded-2xl shadow-md p-5">
+            <h2 class="font-bold text-primary mb-4 flex items-center gap-2">
+                📷 عکس پروفایل
+                <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">
+                    🔒 نیاز به تأیید
+                </span>
+            </h2>
+
+            <div class="flex items-center gap-5 flex-wrap">
+                <div class="shrink-0">
+                    {% if business.avatar %}
+                        <img id="avatar-preview"
+                             src="{{ business.avatar.url }}"
+                             alt="{{ business.name }}"
+                             class="w-24 h-24 rounded-full object-cover ring-4 ring-accent/30">
+                    {% else %}
+                        <div id="avatar-preview-fallback"
+                             class="w-24 h-24 rounded-full bg-primary text-white flex items-center justify-center text-3xl font-bold ring-4 ring-accent/30">
+                            {{ business.name|slice:":1" }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="flex-1 min-w-0">
+                    <label for="avatar-input"
+                           class="inline-block bg-primary text-white font-bold px-5 py-3 rounded-xl hover:opacity-90 transition cursor-pointer">
+                        📁 انتخاب عکس
+                    </label>
+
+                    {{ avatar_form.avatar }}
+
+                    <p class="text-xs text-darktext/50 mt-2">
+                        JPG, PNG · حداکثر ۲ مگابایت
+                    </p>
+
+                    {% if business.avatar %}
+                        <button type="button"
+                                onclick="if(confirm('درخواست حذف عکس رو بفرستم؟')) { document.getElementById('delete-avatar-form').submit(); }"
+                                class="text-sm text-danger font-bold hover:underline mt-2">
+                            🗑️ درخواست حذف عکس
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# اطلاعات پروفایل #}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">📝 اطلاعات شخصی</h2>
+            </div>
+
+            <div class="p-5 space-y-4">
+                {% if form.non_field_errors %}
+                    <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                        {% for error in form.non_field_errors %}
+                            <p>⚠️ {{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5 flex items-center gap-2">
+                            نام
+                            <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">🔒</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}<p class="text-danger text-xs mt-1">{{ form.name.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5">
+                            تلفن ثابت (اختیاری)
+                        </label>
+                        {{ form.landline }}
+                        {% if form.landline.errors %}<p class="text-danger text-xs mt-1">{{ form.landline.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5 flex items-center gap-2">
+                            منطقه
+                            <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">🔒</span>
+                        </label>
+                        {{ form.region }}
+                        {% if form.region.errors %}<p class="text-danger text-xs mt-1">{{ form.region.errors.0 }}</p>{% endif %}
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-darktext mb-1.5 flex items-center gap-2">
+                            آدرس
+                            <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">🔒</span>
+                        </label>
+                        {{ form.address }}
+                        {% if form.address.errors %}<p class="text-danger text-xs mt-1">{{ form.address.errors.0 }}</p>{% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5 flex items-center gap-2">
+                        درباره ما
+                        <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">🔒</span>
+                    </label>
+                    {{ form.bio }}
+                    {% if form.bio.errors %}<p class="text-danger text-xs mt-1">{{ form.bio.errors.0 }}</p>{% endif %}
+                </div>
+
+                <div class="pt-2">
+                    <button type="submit"
+                            class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 transition">
+                        💾 ذخیره تغییرات
+                    </button>
+                    <p class="text-xs text-darktext/50 text-center mt-2">
+                        فیلدهای 🔒 بعد از ذخیره، برای بررسی به مدیر ارسال میشن.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    {# فرم مخفی حذف آواتار #}
+    <form id="delete-avatar-form"
+          method="post"
+          action="{% url 'business:delete_avatar' %}"
+          class="hidden">
+        {% csrf_token %}
+    </form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/avatar-preview.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}ثبت‌نام — خدمات به چه کسی؟{% endblock %}
+
+{% block content %}
+
+    <div class="max-w-2xl mx-auto">
+
+        {# Progress Bar #}
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-primary">مرحله ۱ از ۵</span>
+                <span class="text-xs text-darktext/60">۲۰٪</span>
+            </div>
+            <div class="bg-cream rounded-full h-2 overflow-hidden">
+                <div class="bg-accent h-full rounded-full transition-all" style="width: 20%"></div>
+            </div>
+        </div>
+
+        {# عنوان #}
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-full bg-accent/20 text-accent flex items-center justify-center text-3xl mx-auto mb-3">
+                👥
+            </div>
+            <h1 class="text-2xl font-bold text-primary">خدمات به چه کسی؟</h1>
+            <p class="text-sm text-darktext/60 mt-2 leading-relaxed">
+                خدماتت رو به چه گروهی ارائه می‌دی؟ این کمکت می‌کنه توی لیست درست دیده بشی.
+            </p>
+        </div>
+
+        {# کارت‌های مخاطب #}
+        <form method="post" class="space-y-3">
+            {% csrf_token %}
+            {{ form.audience_id }}
+
+            {% if audiences %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for audience in audiences %}
+                        <button type="submit"
+                                name="audience_id"
+                                value="{{ audience.id }}"
+                                class="group bg-white rounded-2xl shadow-md overflow-hidden
+                                       hover:shadow-lg hover:border-accent/40 border-2 border-transparent
+                                       transition-all cursor-pointer text-right p-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-xl bg-accent/10 text-accent flex items-center justify-center text-3xl shrink-0 group-hover:bg-accent group-hover:text-white transition">
+                                    {{ audience.icon|default:"👤" }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-lg text-primary group-hover:text-accent transition">
+                                        {{ audience.name }}
+                                    </h3>
+                                    <p class="text-xs text-darktext/50 mt-1">
+                                        برای انتخاب کلیک کن
+                                    </p>
+                                </div>
+                                <div class="text-2xl text-darktext/20 group-hover:text-accent transition">
+                                    ←
+                                </div>
+                            </div>
+                        </button>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="bg-white rounded-2xl shadow-md p-10 text-center">
+                    <div class="text-4xl mb-3">😴</div>
+                    <p class="text-darktext/60 mb-2">
+                        هنوز مخاطبی توی سیستم تعریف نشده.
+                    </p>
+                    <p class="text-xs text-darktext/40 mt-2">
+                        لطفاً با مدیر تماس بگیر.
+                    </p>
+                </div>
+            {% endif %}
+        </form>
+
+        {# راهنما #}
+        <div class="bg-cream rounded-xl p-4 mt-5 text-xs text-darktext/70 leading-relaxed">
+            <div class="flex items-start gap-2">
+                <span class="text-lg shrink-0">💡</span>
+                <div>
+                    <strong>مثال:</strong>
+                    اگه آرایشگر مردانه هستی → «آقایان» رو انتخاب کن.
+                    اگه ناخن‌کار هستی و هم آقایان هم بانوان میان → «هردو» رو انتخاب کن.
+                </div>
+            </div>
+        </div>
+
+        {# بازگشت #}
+        <div class="text-center mt-5">
+            <a href="{% url 'core:home' %}"
+               class="text-sm text-darktext/50 hover:text-accent transition">
+                ← بازگشت به خانه
+            </a>
+        </div>
+
+    </div>
+
+{% endblock %}

@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}آرایشیار — نوبت‌دهی آنلاین{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto text-center py-12">
+
+    {# لوگو #}
+    <div
+        class="w-24 h-24 rounded-full bg-accent flex items-center justify-center text-4xl font-bold text-primary mx-auto mb-6 shadow-lg">
+        آر
+    </div>
+
+    <h1 class="text-3xl font-bold text-primary mb-3">آرایشیار</h1>
+    <p class="text-darktext/60 leading-relaxed mb-8">
+        نوبت‌دهی آنلاین کسب‌وکارهای زیبایی
+        <br>
+        ساده، سریع، بدون تماس تلفنی
+    </p>
+
+    {# ویژگی‌ها #}
+    <div class="grid grid-cols-3 gap-3 mb-8 text-center">
+        <div class="bg-white rounded-xl shadow-sm p-3">
+            <div class="text-2xl mb-1">📅</div>
+            <div class="text-xs font-bold text-primary">نوبت آنلاین</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3">
+            <div class="text-2xl mb-1">⚡</div>
+            <div class="text-xs font-bold text-primary">سریع و راحت</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-3">
+            <div class="text-2xl mb-1">🎁</div>
+            <div class="text-xs font-bold text-primary">رایگان</div>
+        </div>
+    </div>
+
+    {# دکمه ورود #}
+    <a href="{% url 'accounts:login_phone' %}"
+        class="block w-full bg-accent text-primary font-bold py-4 rounded-2xl hover:opacity-90 active:scale-[0.98] transition text-lg">
+        📱 ورود با شماره موبایل
+    </a>
+
+    {# ─── جداکننده ─── #}
+    <div class="flex items-center gap-3 my-4">
+        <div class="flex-1 h-px bg-darktext/10"></div>
+        <span class="text-xs text-darktext/40">یا</span>
+        <div class="flex-1 h-px bg-darktext/10"></div>
+    </div>
+
+    {# دکمه ثبت‌نام کسب‌وکار #}
+    <a href="{% url 'business:register_start' %}"
+        class="block w-full bg-white text-primary font-bold py-4 rounded-2xl hover:bg-cream active:scale-[0.98] transition text-lg border-2 border-primary/10">
+        💼 ثبت‌نام کسب‌وکار
+    </a>
+
+</div>
+{% endblock %}

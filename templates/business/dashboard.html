@@ -1,0 +1,294 @@
+{% extends 'base.html' %}
+{% load jalali %}
+
+{% block title %}داشبورد — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    {# ═══════════════ هشدار در انتظار تأیید ═══════════════ #}
+    {% if pending_approval %}
+        <div class="bg-warning/10 border-2 border-warning/40 rounded-2xl p-5 mb-5">
+            <div class="flex items-start gap-3">
+                <div class="text-3xl shrink-0">⏳</div>
+                <div class="flex-1">
+                    <div class="font-bold text-warning text-lg mb-2">
+                        پروفایل تو در انتظار تأیید مدیره
+                    </div>
+                    <p class="text-sm text-darktext/80 leading-relaxed mb-3">
+                        تا وقتی مدیر تأییدش نکنه، این امکانات <strong>قفل</strong> هستن:
+                    </p>
+                    <ul class="text-sm text-darktext/70 list-disc pr-5 space-y-1">
+                        <li>🔒 لینک اختصاصی و QR Code</li>
+                        <li>🔒 دریافت نوبت از مشتری‌ها</li>
+                        <li>🔒 تأیید/لغو نوبت‌ها</li>
+                        <li>🔒 لیست سیاه</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ هدر کسب‌وکار ═══════════════ #}
+    <div class="bg-primary text-white rounded-2xl shadow-md p-5 mb-5">
+        <div class="flex items-center gap-4">
+            {% if business.avatar %}
+                <img src="{{ business.avatar.url }}"
+                     alt="{{ business.name }}"
+                     class="w-16 h-16 rounded-full object-cover shrink-0 ring-2 ring-accent">
+            {% else %}
+                <div class="w-16 h-16 rounded-full bg-accent text-primary flex items-center justify-center text-2xl font-bold shrink-0 leading-none select-none">
+                    {{ business.name|slice:":1" }}
+                </div>
+            {% endif %}
+
+            <div class="flex-1 min-w-0">
+                <h1 class="font-bold text-xl">{{ business.name }}</h1>
+                <p class="text-sm text-white/70 mt-1">
+                    {% if business.is_salon %}🏢{% else %}💁{% endif %}
+                    {{ business.activity_type.name }}
+                </p>
+                <p class="text-xs text-white/60 mt-1">
+                    📅 امروز: {{ today|to_jalali }}
+                </p>
+            </div>
+
+            {% if business.is_active %}
+                <span class="bg-success/20 text-success px-3 py-1 rounded-full text-xs font-bold shrink-0">
+                    ● باز
+                </span>
+            {% else %}
+                <span class="bg-danger/20 text-danger px-3 py-1 rounded-full text-xs font-bold shrink-0">
+                    ● بسته
+                </span>
+            {% endif %}
+        </div>
+    </div>
+
+    {# ═══════════════════════════════════════════════════════════    کارت پلن ═══════════════════════════════════════════════════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+
+        <div class="p-5 flex items-center gap-4
+                    {% if not business.is_plan_active %}bg-danger/5
+                    {% elif business.plan == 'pro' %}bg-gradient-to-l from-accent/20 to-accent/5
+                    {% elif business.plan == 'basic' %}bg-primary/5
+                    {% else %}bg-warning/5{% endif %}">
+
+            {# ─── آیکون پلن ─── #}
+            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0
+                        {% if business.plan == 'pro' %}bg-accent/20
+                        {% elif business.plan == 'basic' %}bg-primary/10
+                        {% else %}bg-warning/20{% endif %}">
+                {% if business.plan == 'pro' %}💎
+                {% elif business.plan == 'basic' %}⭐
+                {% else %}🎁{% endif %}
+            </div>
+
+            {# ─── اطلاعات پلن ─── #}
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <span class="font-bold text-lg text-primary">
+                        {% if business.plan == 'pro' %}پلن ویژه
+                        {% elif business.plan == 'basic' %}پلن پایه
+                        {% else %}دوره تست{% endif %}
+                    </span>
+
+                    {% if not business.is_plan_active %}
+                        <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">
+                            ❌ منقضی شده
+                        </span>
+                    {% elif business.plan_days_left is not None and business.plan_days_left <= 7 %}
+                        <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">
+                            ⚠️ {{ business.plan_days_left }} روز مونده
+                        </span>
+                    {% else %}
+                        <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">
+                            ✅ فعال
+                        </span>
+                    {% endif %}
+                </div>
+
+                {% if business.plan_expires_at %}
+                    <div class="text-sm text-darktext/70 mt-1">
+                        📅 تاریخ انقضا: <strong>{{ business.plan_expires_at|to_jalali }}</strong>
+                        {% if business.plan_days_left is not None %}
+                            {% if business.plan_days_left > 0 %}
+                                <span class="text-darktext/50">({{ business.plan_days_left }} روز مونده)</span>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            {# ─── دکمه‌ها ─── #}
+            <div class="shrink-0 flex flex-col sm:flex-row gap-2">
+                <a href="{% url 'business:my_plan' %}"
+                   class="bg-white text-primary font-bold px-4 py-2 rounded-lg hover:bg-cream transition text-sm text-center border border-black/10">
+                    💎 مدیریت پلن
+                </a>
+                <a href="{% url 'business:buy_plan' %}"
+                   class="bg-accent text-primary font-bold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm text-center">
+                    🚀 ارتقا / تمدید
+                </a>
+            </div>
+        </div>
+
+        {# ─── نوار هشدار انقضا ─── #}
+        {% if not business.is_plan_active %}
+            <div class="bg-danger/10 border-t border-danger/30 px-5 py-3 text-sm text-danger font-bold">
+                ⚠️ پلنت منقضی شده! برای ادامه‌ی استفاده، یه پلن جدید بخر.
+            </div>
+        {% elif business.plan == 'trial' and business.plan_days_left is not None and business.plan_days_left <= 7 %}
+            <div class="bg-warning/10 border-t border-warning/30 px-5 py-3 text-sm text-warning font-bold">
+                ⏰ فقط {{ business.plan_days_left }} روز از دوره تستت مونده! برای ادامه، پلن بخر.
+            </div>
+        {% endif %}
+    </div>
+
+    {# ═══════════════ کارت‌های آمار ═══════════════ #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {% include 'business/partials/_stat_card.html' with value=stats.today_count label="امروز" color="primary" border="left" %}
+        {% include 'business/partials/_stat_card.html' with value=stats.week_count label="این هفته" color="primary" border="left" %}
+        {% include 'business/partials/_stat_card.html' with value=stats.pending_count label="در انتظار" color="warning" border="left" %}
+        {% include 'business/partials/_stat_card.html' with value=stats.confirmed_count label="تأیید شده" color="success" border="left" %}
+    </div>
+
+    {# ═══════════════ دسترسی سریع ═══════════════ #}
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-5">
+
+        <a href="{% url 'business:edit_profile' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">👤</div>
+            <div class="text-xs font-bold text-primary">ویرایش پروفایل</div>
+        </a>
+
+        <a href="{% url 'business:manage_services' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">✂️</div>
+            <div class="text-xs font-bold text-primary">خدمات</div>
+        </a>
+
+        {% if business.is_salon %}
+            <a href="{% url 'business:manage_stations' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">📍</div>
+                <div class="text-xs font-bold text-primary">ایستگاه‌ها</div>
+            </a>
+        {% endif %}
+
+        <a href="{% url 'business:manage_hours' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">🗓️</div>
+            <div class="text-xs font-bold text-primary">برنامه هفتگی</div>
+        </a>
+
+        <a href="{% url 'business:manage_days_off' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">🚫</div>
+            <div class="text-xs font-bold text-primary">تعطیلی‌ها</div>
+        </a>
+
+        <a href="{% url 'business:manage_special_hours' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">⭐</div>
+            <div class="text-xs font-bold text-primary">ساعات خاص</div>
+        </a>
+
+        <a href="{% url 'business:manage_breaks' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">☕</div>
+            <div class="text-xs font-bold text-primary">وقفه</div>
+        </a>
+
+        {% if business.is_active %}
+            <a href="{% url 'business:share' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">📱</div>
+                <div class="text-xs font-bold text-primary">QR و لینک</div>
+            </a>
+        {% else %}
+            <div class="bg-white rounded-xl shadow-sm p-3 text-center opacity-50 cursor-not-allowed relative">
+                <div class="absolute top-1 left-1 text-sm">🔒</div>
+                <div class="text-2xl mb-1">📱</div>
+                <div class="text-xs font-bold text-darktext/60">QR و لینک</div>
+            </div>
+        {% endif %}
+
+        <a href="{% url 'business:my_change_requests' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition relative">
+            <div class="text-2xl mb-1">📝</div>
+            <div class="text-xs font-bold text-primary">درخواست‌ها</div>
+            {% if business.pending_changes_count %}
+                <span class="absolute top-1 left-1 bg-warning text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {{ business.pending_changes_count }}
+                </span>
+            {% endif %}
+        </a>
+
+        <a href="{% url 'business:my_plan' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">💎</div>
+            <div class="text-xs font-bold text-primary">پلن من</div>
+        </a>
+    </div>
+
+    {# ═══════════════ نوبت‌های امروز ═══════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+        <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between">
+            <h2 class="font-bold text-primary">📅 نوبت‌های امروز</h2>
+            <span class="text-xs text-darktext/60">{{ stats.today_count }} نوبت</span>
+        </div>
+
+        {% if business.is_active %}
+            {% if appointments_today %}
+                <div class="divide-y divide-black/5">
+                    {% for appt in appointments_today %}
+                        {% include 'business/partials/_appointment_row.html' with appt=appt business=business %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="p-8 text-center text-darktext/50">
+                    امروز نوبتی نداری. ☕
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="p-8 text-center text-darktext/50">
+                <div class="text-4xl mb-3">🔒</div>
+                <p class="text-sm">بعد از تأیید مدیر، نوبت‌هات اینجا نشون داده میشه.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    {# ═══════════════ نوبت‌های آینده ═══════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between">
+            <h2 class="font-bold text-primary">🔮 نوبت‌های آینده</h2>
+            <span class="text-xs text-darktext/60">
+                {% if business.is_active %}
+                    {{ appointments_upcoming|length }} نوبت
+                {% else %}
+                    🔒
+                {% endif %}
+            </span>
+        </div>
+
+        {% if business.is_active %}
+            {% if appointments_upcoming %}
+                <div class="divide-y divide-black/5">
+                    {% for appt in appointments_upcoming %}
+                        {% include 'business/partials/_appointment_row.html' with appt=appt business=business %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="p-8 text-center text-darktext/50">
+                    نوبت آینده‌ای ثبت نشده.
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="p-8 text-center text-darktext/50">
+                <div class="text-4xl mb-3">🔒</div>
+                <p class="text-sm">بعد از تأیید مدیر، نوبت‌های آینده اینجا نمایش داده میشن.</p>
+            </div>
+        {% endif %}
+    </div>
+
+{% endblock %}

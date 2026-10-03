@@ -1,0 +1,24 @@
+{# ─── کارت آمار (قابل استفاده مجدد) ─── #}
+{# پارامترها: #}
+{#   value: عدد #}
+{#   label: برچسب #}
+{#   color: primary | accent | success | warning | danger #}
+{#   border: (اختیاری) "left" برای نوار رنگی #}
+
+<div class="bg-white rounded-xl shadow-sm p-4 text-center
+            {% if border == 'left' %}border-r-4{% endif %}
+            {% if color == 'accent' %}border-accent{% elif color == 'success' %}border-success{% elif color == 'warning' %}border-warning{% elif color == 'danger' %}border-danger{% else %}border-primary{% endif %}">
+
+    <div class="text-2xl font-bold
+                {% if color == 'accent' %}text-accent
+                {% elif color == 'success' %}text-success
+                {% elif color == 'warning' %}text-warning
+                {% elif color == 'danger' %}text-danger
+                {% else %}text-primary{% endif %}">
+        {{ value }}
+    </div>
+
+    <div class="text-xs text-darktext/60 mt-1">
+        {{ label }}
+    </div>
+</div>

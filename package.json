@@ -1,0 +1,13 @@
+{
+    "name": "arayeshyar",
+    "version": "1.0.0",
+    "description": "وب‌اپ نوبت‌دهی آنلاین آرایشیار",
+    "private": true,
+    "scripts": {
+        "tailwind:build": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind.css --minify",
+        "tailwind:watch": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind.css --watch"
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.4.0"
+    }
+}

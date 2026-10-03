@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block title %}وقفه‌ها — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">☕ وقفه‌های استراحت</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            بازه‌هایی که می‌خوای استراحت کنی (ناهار، نماز و...) رو تعیین کن.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">➕ افزودن وقفه جدید</h2>
+        </div>
+
+        <form method="post"
+              class="p-5 space-y-4"
+              hx-post="{% url 'business:manage_breaks' %}"
+              hx-target="#breaks-list"
+              hx-swap="outerHTML"
+              hx-on::after-request="if(event.detail.successful) this.reset()">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">از ساعت</label>
+                    {{ form.start_time }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">تا ساعت</label>
+                    {{ form.end_time }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">عنوان (اختیاری)</label>
+                {{ form.label }}
+            </div>
+
+            <div class="flex items-center gap-2">
+                {{ form.is_active }}
+                <label class="text-sm font-bold text-darktext">فعال باشه</label>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">
+                ثبت وقفه
+            </button>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5">
+            <h2 class="font-bold text-primary">📋 وقفه‌های فعلی</h2>
+        </div>
+
+        {% include 'business/partials/_breaks_list.html' %}
+    </div>
+
+{% endblock %}

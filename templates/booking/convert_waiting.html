@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load jalali %}
+
+{% block title %}تبدیل به نوبت — {{ item.customer.display_name }}{% endblock %}
+
+{% block content %}
+
+<div x-data="{ selectedTime: '{{ preferred_str|default:'' }}' }">
+
+    <a href="{% url 'booking:manage_waiting_list' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به لیست انتظار
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">📅 تبدیل به نوبت</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            ساعت دقیق نوبت رو از بین اسلات‌های آزاد انتخاب کن.
+        </p>
+    </div>
+
+    {# کارت مشتری #}
+    <div class="bg-warning/10 border border-warning/30 rounded-2xl p-5 mb-5">
+        <div class="flex items-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-warning text-white flex items-center justify-center text-2xl font-bold shrink-0 leading-none">
+                {{ item.customer.display_name|slice:":1" }}
+            </div>
+            <div class="flex-1 min-w-0">
+                <h2 class="font-bold text-lg text-darktext">{{ item.customer.display_name }}</h2>
+                <p class="text-sm text-darktext/70 mt-1">📞 {{ item.customer.phone }}</p>
+                <p class="text-xs text-darktext/60 mt-1">
+                    📅 {{ item.date|to_jalali }}
+                    {% if item.preferred_time %} · ⏰ ترجیحی: {{ item.preferred_time|time:"H:i" }}{% endif %}
+                    · ✂️ {{ item.service_name_snapshot }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {# فرم #}
+    {% if slots %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3">
+                <h3 class="font-bold">⏰ انتخاب ساعت</h3>
+            </div>
+
+            <form method="post" class="p-5 space-y-5">
+                {% csrf_token %}
+
+                <div>
+                    <p class="text-sm text-darktext/70 mb-3">
+                        ساعت‌های آزاد این روز:
+                    </p>
+
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                        {% for slot in slots %}
+                            <button type="button"
+                                    @click="selectedTime = '{{ slot|time:"H:i" }}'"
+                                    :class="selectedTime === '{{ slot|time:"H:i" }}'
+                                        ? 'bg-accent text-primary border-accent ring-2 ring-accent/30 scale-105'
+                                        : 'bg-white text-primary border-black/10 hover:border-accent hover:bg-accent/5'"
+                                    class="border-2 rounded-xl py-3 px-2 text-center font-bold transition-all duration-150 active:scale-95">
+                                <div class="text-base leading-none font-mono" dir="ltr">{{ slot|time:"H:i" }}</div>
+                                {% if slot|time:"H:i" == preferred_str %}
+                                    <div class="text-[9px] text-warning mt-1 font-bold">⭐ ترجیح</div>
+                                {% endif %}
+                            </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div x-show="selectedTime"
+                     x-transition
+                     x-cloak
+                     class="bg-accent/10 border border-accent/30 rounded-xl p-4 flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-2xl">✅</span>
+                        <div>
+                            <div class="text-xs text-darktext/60">ساعت انتخابی</div>
+                            <div class="font-bold text-primary text-lg font-mono" dir="ltr" x-text="selectedTime"></div>
+                        </div>
+                    </div>
+                    <button type="button"
+                            @click="selectedTime = ''"
+                            class="text-xs text-danger hover:underline">
+                        لغو
+                    </button>
+                </div>
+
+                <input type="hidden" name="time" :value="selectedTime">
+
+                <button type="submit"
+                        :disabled="!selectedTime"
+                        class="w-full bg-success text-white font-bold py-3.5 rounded-xl
+                               hover:opacity-90 transition
+                               disabled:opacity-40 disabled:cursor-not-allowed">
+                    <span x-show="!selectedTime">اول یه ساعت انتخاب کن</span>
+                    <span x-show="selectedTime" x-cloak>
+                        ثبت نوبت برای ساعت <span x-text="selectedTime"></span>
+                    </span>
+                </button>
+            </form>
+        </div>
+    {% else %}
+        <div class="bg-white rounded-2xl shadow-md p-10 text-center">
+            <div class="text-4xl mb-3">😴</div>
+            <p class="text-darktext/60 mb-5">
+                برای این روز اسلات آزادی وجود نداره.
+            </p>
+            <a href="{% url 'booking:manage_waiting_list' %}"
+               class="inline-block bg-primary text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
+                بازگشت به لیست انتظار
+            </a>
+        </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}

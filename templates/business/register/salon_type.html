@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}ثبت‌نام — سالن داری؟{% endblock %}
+
+{% block content %}
+
+    <div class="max-w-2xl mx-auto">
+
+        {# Progress Bar #}
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-primary">مرحله ۲ از ۵</span>
+                <span class="text-xs text-darktext/60">۴۰٪</span>
+            </div>
+            <div class="bg-cream rounded-full h-2 overflow-hidden">
+                <div class="bg-accent h-full rounded-full transition-all" style="width: 40%"></div>
+            </div>
+        </div>
+
+        {# عنوان #}
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-full bg-accent/20 text-accent flex items-center justify-center text-3xl mx-auto mb-3">
+                🏢
+            </div>
+            <h1 class="text-2xl font-bold text-primary">سالن داری یا شخصی کار می‌کنی؟</h1>
+            <p class="text-sm text-darktext/60 mt-2 leading-relaxed">
+                این به ما کمک می‌کنه ساختار پروفایلت رو درست بسازیم.
+            </p>
+        </div>
+
+        {# کارت‌ها #}
+        <form method="post" class="space-y-3">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                {# سالن دارم #}
+                <button type="submit"
+                        name="is_salon"
+                        value="yes"
+                        class="group bg-white rounded-2xl shadow-md overflow-hidden
+                               hover:shadow-lg hover:border-accent/40 border-2 border-transparent
+                               transition-all cursor-pointer text-right p-5">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div class="w-20 h-20 rounded-2xl bg-accent/10 text-accent flex items-center justify-center text-4xl group-hover:bg-accent group-hover:text-white transition">
+                            🏢
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-primary group-hover:text-accent transition">
+                                سالن دارم
+                            </h3>
+                            <p class="text-xs text-darktext/60 mt-2 leading-relaxed">
+                                یه سالن با چند ایستگاه یا اتاق داری که هر کدوم خدمات خاصی ارائه می‌ده
+                            </p>
+                        </div>
+                        <div class="mt-2 text-xs bg-accent/10 text-accent px-3 py-1 rounded-full font-bold">
+                            مثال: سالن زیبایی، سالن ماساژ
+                        </div>
+                    </div>
+                </button>
+
+                {# شخصی کار می‌کنم #}
+                <button type="submit"
+                        name="is_salon"
+                        value="no"
+                        class="group bg-white rounded-2xl shadow-md overflow-hidden
+                               hover:shadow-lg hover:border-accent/40 border-2 border-transparent
+                               transition-all cursor-pointer text-right p-5">
+                    <div class="flex flex-col items-center text-center gap-3">
+                        <div class="w-20 h-20 rounded-2xl bg-accent/10 text-accent flex items-center justify-center text-4xl group-hover:bg-accent group-hover:text-white transition">
+                            💁
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-lg text-primary group-hover:text-accent transition">
+                                شخصی کار می‌کنم
+                            </h3>
+                            <p class="text-xs text-darktext/60 mt-2 leading-relaxed">
+                                خودت تکی کار می‌کنی و خدماتت رو به مشتری‌ها ارائه می‌دی
+                            </p>
+                        </div>
+                        <div class="mt-2 text-xs bg-accent/10 text-accent px-3 py-1 rounded-full font-bold">
+                            مثال: آرایشگر، ناخن‌کار، تتو کار
+                        </div>
+                    </div>
+                </button>
+
+            </div>
+        </form>
+
+        {# راهنما #}
+        <div class="bg-cream rounded-xl p-4 mt-5 text-xs text-darktext/70 leading-relaxed">
+            <div class="flex items-start gap-2">
+                <span class="text-lg shrink-0">💡</span>
+                <div>
+                    <strong>توجه:</strong>
+                    اگه سالن داری، بعداً می‌تونی <strong>ایستگاه‌ها</strong> رو تعریف کنی.
+                    ولی اگه شخصی کار می‌کنی، فقط <strong>خدماتت</strong> رو وارد می‌کنی.
+                </div>
+            </div>
+        </div>
+
+        {# بازگشت #}
+        <div class="text-center mt-5">
+            <a href="{% url 'business:register_audience' %}"
+               class="text-sm text-darktext/50 hover:text-accent transition">
+                ← بازگشت به مرحله قبل
+            </a>
+        </div>
+
+    </div>
+
+{% endblock %}

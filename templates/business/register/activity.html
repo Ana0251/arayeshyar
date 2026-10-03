@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ثبت‌نام — نوع فعالیت{% endblock %}
+
+{% block content %}
+
+    <div class="max-w-2xl mx-auto" x-data="activityForm()">
+
+        {# Progress Bar #}
+        <div class="mb-6">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-xs font-bold text-primary">مرحله ۳ از ۵</span>
+                <span class="text-xs text-darktext/60">۶۰٪</span>
+            </div>
+            <div class="bg-cream rounded-full h-2 overflow-hidden">
+                <div class="bg-accent h-full rounded-full transition-all" style="width: 60%"></div>
+            </div>
+        </div>
+
+        {# عنوان #}
+        <div class="text-center mb-6">
+            <div class="w-16 h-16 rounded-full bg-accent/20 text-accent flex items-center justify-center text-3xl mx-auto mb-3">
+                {% if is_salon %}🏢{% else %}💁{% endif %}
+            </div>
+            <h1 class="text-2xl font-bold text-primary">
+                {% if is_salon %}نوع سالنت چیه؟{% else %}نوع فعالیتت چیه؟{% endif %}
+            </h1>
+            <p class="text-sm text-darktext/60 mt-2 leading-relaxed">
+                {% if is_salon %}
+                    نوع سالنت رو انتخاب کن تا خدمات مناسب نمایش داده بشه.
+                {% else %}
+                    کاری که انجام می‌دی رو انتخاب کن.
+                {% endif %}
+            </p>
+        </div>
+
+        {# فرم #}
+        <form method="post" id="activity-form">
+            {% csrf_token %}
+            <input type="hidden" name="other_activity" :value="otherValue">
+            <input type="hidden" name="activity_id" id="selected-activity-id" value="">
+
+            {% if activities %}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                    {% for activity in activities %}
+                        <button type="button"
+                                @click="selectActivity({{ activity.id }})"
+                                class="group bg-white rounded-2xl shadow-md overflow-hidden
+                                       hover:shadow-lg hover:border-accent/40 border-2 border-transparent
+                                       transition-all cursor-pointer text-right p-5">
+                            <div class="flex items-center gap-4">
+                                <div class="w-14 h-14 rounded-xl bg-accent/10 text-accent flex items-center justify-center text-3xl shrink-0 group-hover:bg-accent group-hover:text-white transition">
+                                    {{ activity.icon|default:"✨" }}
+                                </div>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-base text-primary group-hover:text-accent transition">
+                                        {{ activity.name }}
+                                    </h3>
+                                    <p class="text-xs text-darktext/50 mt-1">
+                                        برای انتخاب کلیک کن
+                                    </p>
+                                </div>
+                                <div class="text-2xl text-darktext/20 group-hover:text-accent transition shrink-0">
+                                    ←
+                                </div>
+                            </div>
+                        </button>
+                    {% endfor %}
+
+                    {# کارت سایر #}
+                    <button type="button"
+                            @click="showOther = true"
+                            x-show="!showOther"
+                            class="group bg-white rounded-2xl shadow-md overflow-hidden
+                                   hover:shadow-lg hover:border-warning/40 border-2 border-dashed border-warning/30
+                                   transition-all cursor-pointer text-right p-5">
+                        <div class="flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-xl bg-warning/10 text-warning flex items-center justify-center text-3xl shrink-0 group-hover:bg-warning group-hover:text-white transition">
+                                ➕
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-base text-warning">
+                                    سایر
+                                </h3>
+                                <p class="text-xs text-darktext/50 mt-1">
+                                    فعالیتت توی لیست نیست؟
+                                </p>
+                            </div>
+                            <div class="text-2xl text-warning/40 group-hover:text-warning transition shrink-0">
+                                ←
+                            </div>
+                        </div>
+                    </button>
+
+                </div>
+            {% else %}
+                <div class="bg-white rounded-2xl shadow-md p-10 text-center">
+                    <div class="text-4xl mb-3">😴</div>
+                    <h2 class="font-bold text-primary text-lg mb-2">
+                        هنوز فعالیتی توی این بخش تعریف نشده
+                    </h2>
+
+                    <button type="button"
+                            @click="showOther = true"
+                            x-show="!showOther"
+                            class="mt-4 inline-block bg-warning text-white font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
+                        ➕ افزودن فعالیت جدید
+                    </button>
+                </div>
+            {% endif %}
+
+            {# فرم سایر #}
+            <div x-show="showOther"
+                 x-cloak
+                 x-transition
+                 class="bg-warning/5 border-2 border-warning/30 rounded-2xl p-5 mt-3">
+
+                <div class="flex items-start gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-xl bg-warning/20 text-warning flex items-center justify-center text-xl shrink-0">
+                        ✏️
+                    </div>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-warning text-base">فعالیتت رو بنویس</h3>
+                        <p class="text-xs text-darktext/60 mt-1">
+                            اسم کاری که انجام می‌دی رو وارد کن. مدیر بعداً می‌تونه تأییدش کنه.
+                        </p>
+                    </div>
+                </div>
+
+                <input type="text"
+                       x-model="otherValue"
+                       placeholder="مثلاً: اپیلاسیون، شنیون، تتو ابرو..."
+                       maxlength="100"
+                       @keydown.enter.prevent="submitOther()"
+                       class="w-full px-4 py-3 rounded-xl border border-warning/30 bg-white
+                              focus:border-warning focus:ring-2 focus:ring-warning/20
+                              outline-none transition text-base">
+
+                <div class="flex gap-2 mt-4">
+                    <button type="button"
+                            @click="submitOther()"
+                            class="flex-1 bg-warning text-white font-bold py-3 rounded-xl hover:opacity-90 transition">
+                        ✅ ثبت فعالیت
+                    </button>
+                    <button type="button"
+                            @click="showOther = false; otherValue = ''"
+                            class="px-5 bg-white text-darktext/70 font-bold rounded-xl hover:bg-cream transition border border-black/10">
+                        لغو
+                    </button>
+                </div>
+            </div>
+
+        </form>
+
+        {# راهنما #}
+        <div class="bg-cream rounded-xl p-4 mt-5 text-xs text-darktext/70 leading-relaxed">
+            <div class="flex items-start gap-2">
+                <span class="text-lg shrink-0">💡</span>
+                <div>
+                    {% if is_salon %}
+                        <strong>مثال:</strong>
+                        اگه سالن زیبایی داری، «سالن زیبایی» رو انتخاب کن.
+                    {% else %}
+                        <strong>مثال:</strong>
+                        اگه آرایشگر مردانه هستی، «آرایشگر» رو انتخاب کن.
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        {# بازگشت #}
+        <div class="text-center mt-5">
+            <a href="{% url 'business:register_salon_type' %}"
+               class="text-sm text-darktext/50 hover:text-accent transition">
+                ← بازگشت به مرحله قبل
+            </a>
+        </div>
+
+    </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/register-activity.js' %}"></script>
+{% endblock %}

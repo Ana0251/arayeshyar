@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}ثبت‌نام — ایستگاه‌های سالن{% endblock %}
+
+{% block content %}
+
+<div class="max-w-2xl mx-auto" x-data="stationsForm()">
+
+    {# Progress Bar #}
+    <div class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-bold text-primary">مرحله ۴ از ۵</span>
+            <span class="text-xs text-darktext/60">۸۰٪</span>
+        </div>
+        <div class="bg-cream rounded-full h-2 overflow-hidden">
+            <div class="bg-accent h-full rounded-full transition-all" style="width: 80%"></div>
+        </div>
+    </div>
+
+    {# عنوان #}
+    <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-full bg-accent/20 text-accent flex items-center justify-center text-3xl mx-auto mb-3">
+            🏢
+        </div>
+        <h1 class="text-2xl font-bold text-primary">ایستگاه‌های سالنت</h1>
+        <p class="text-sm text-darktext/60 mt-2 leading-relaxed">
+            ایستگاه‌ها یا اتاق‌های سالنت رو وارد کن. مثلاً: اتاق رنگ، اتاق ناخن، ایستگاه آرایش مو.
+        </p>
+    </div>
+
+    {# فرم #}
+    <form method="post" class="space-y-3">
+        {% csrf_token %}
+
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+            <div class="bg-primary text-white px-5 py-3 flex items-center justify-between">
+                <h2 class="font-bold">📍 لیست ایستگاه‌ها</h2>
+                <span class="text-xs text-white/70" x-text="stations.length + ' ایستگاه'"></span>
+            </div>
+
+            <div class="p-5 space-y-3">
+
+                <template x-for="(station, index) in stations" :key="index">
+                    <div class="bg-cream/50 rounded-xl p-4 border border-black/5 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-primary" x-text="'ایستگاه ' + (index + 1)"></span>
+                            <button type="button"
+                                    @click="removeStation(index)"
+                                    x-show="stations.length > 1"
+                                    class="text-danger hover:bg-danger/10 px-2 py-1 rounded-lg transition text-xs font-bold">
+                                🗑️ حذف
+                            </button>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-darktext/70 mb-1">
+                                نام ایستگاه <span class="text-danger">*</span>
+                            </label>
+                            <input type="text"
+                                   :name="'station_name[]'"
+                                   x-model="station.name"
+                                   required
+                                   placeholder="مثلاً: اتاق رنگ"
+                                   maxlength="100"
+                                   class="w-full px-4 py-3 rounded-xl border border-black/10 bg-white
+                                          focus:border-accent focus:ring-2 focus:ring-accent/20
+                                          outline-none transition text-sm">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-darktext/70 mb-1">
+                                اسم فرد (اختیاری)
+                            </label>
+                            <input type="text"
+                                   :name="'station_staff[]'"
+                                   x-model="station.staff"
+                                   placeholder="مثلاً: نرگس احمدی"
+                                   maxlength="100"
+                                   class="w-full px-4 py-3 rounded-xl border border-black/10 bg-white
+                                          focus:border-accent focus:ring-2 focus:ring-accent/20
+                                          outline-none transition text-sm">
+                        </div>
+                    </div>
+                </template>
+
+                <button type="button"
+                        @click="addStation()"
+                        class="w-full bg-accent/10 text-accent font-bold py-3 rounded-xl hover:bg-accent/20 transition border-2 border-dashed border-accent/30">
+                    ➕ افزودن ایستگاه جدید
+                </button>
+
+            </div>
+        </div>
+
+        {# دکمه ادامه #}
+        <div class="flex gap-3">
+            <a href="{% url 'business:register_activity' %}"
+               class="px-5 bg-white text-darktext/70 font-bold rounded-xl hover:bg-cream transition border border-black/10 py-3">
+                ← قبلی
+            </a>
+            <button type="submit"
+                    class="flex-1 bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">
+                ادامه →
+            </button>
+        </div>
+
+    </form>
+
+    {# راهنما #}
+    <div class="bg-cream rounded-xl p-4 mt-5 text-xs text-darktext/70 leading-relaxed">
+        <div class="flex items-start gap-2">
+            <span class="text-lg shrink-0">💡</span>
+            <div>
+                <strong>نمونه:</strong>
+                اگه سالن زیبایی داری، می‌تونی این‌طوری تعریف کنی:
+                <ul class="list-disc pr-5 mt-2 space-y-1">
+                    <li>اتاق رنگ (نرگس احمدی)</li>
+                    <li>اتاق ناخن (مریم رضایی)</li>
+                    <li>اتاق اپیلاسیون (فاطمه کریمی)</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/register-stations.js' %}"></script>
+{% endblock %}

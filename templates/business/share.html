@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+
+{% block title %}اشتراک‌گذاری — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">📱 QR Code و لینک اختصاصی</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            لینکت رو با مشتری‌ها به اشتراک بذار تا مستقیم بیان صفحه رزرو تو.
+        </p>
+    </div>
+
+    {# ═══════════════ کارت اصلی ═══════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+
+        {# هدر #}
+        <div class="bg-primary text-white px-5 py-4 text-center">
+            <div class="w-16 h-16 rounded-full bg-accent text-primary flex items-center justify-center text-2xl font-bold leading-none select-none mx-auto mb-2">
+                {{ business.name|slice:":1" }}
+            </div>
+            <h2 class="font-bold text-lg">{{ business.name }}</h2>
+            <p class="text-sm text-white/70 mt-1">📍 {{ business.region }}</p>
+        </div>
+
+        {# QR #}
+        <div class="p-6 text-center bg-cream/30">
+            <div class="inline-block bg-white p-4 rounded-2xl shadow-sm">
+                <img src="{% url 'business:qr_code' business.slug %}"
+                     alt="QR Code {{ business.name }}"
+                     class="w-56 h-56 mx-auto block"
+                     loading="lazy">
+            </div>
+            <p class="text-xs text-darktext/60 mt-4">
+                📸 این QR رو با دوربین گوشی اسکن کن
+            </p>
+        </div>
+
+        {# لینک #}
+        <div class="p-5 border-t border-black/5">
+            <label class="block text-sm font-bold text-darktext mb-2">
+                🔗 لینک اختصاصی تو
+            </label>
+
+            <div class="flex gap-2" x-data="{ copied: false }">
+                <input type="text"
+                       readonly
+                       value="{{ book_url }}"
+                       dir="ltr"
+                       class="flex-1 px-4 py-3 rounded-xl border border-black/10 bg-cream/50 text-sm focus:border-accent outline-none transition font-mono"
+                       onclick="this.select()">
+
+                <button type="button"
+                        @click="
+                            navigator.clipboard.writeText('{{ book_url }}');
+                            copied = true;
+                            setTimeout(() => copied = false, 2000);
+                        "
+                        class="shrink-0 px-5 rounded-xl font-bold transition bg-primary text-white hover:opacity-90">
+                    <span x-show="!copied">📋 کپی</span>
+                    <span x-show="copied" x-cloak class="text-success">✓ کپی شد</span>
+                </button>
+            </div>
+        </div>
+
+        {# اشتراک‌گذاری #}
+        <div class="p-5 border-t border-black/5">
+            <label class="block text-sm font-bold text-darktext mb-3">
+                📤 اشتراک‌گذاری سریع
+            </label>
+
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <a href="https://wa.me/?text={{ book_url|urlencode }}"
+                   target="_blank" rel="noopener"
+                   class="flex items-center justify-center gap-2 bg-[#25D366]/10 text-[#25D366] font-bold py-3 rounded-xl hover:bg-[#25D366]/20 transition">
+                    <span>💬</span> واتساپ
+                </a>
+
+                <a href="https://t.me/share/url?url={{ book_url|urlencode }}"
+                   target="_blank" rel="noopener"
+                   class="flex items-center justify-center gap-2 bg-[#0088cc]/10 text-[#0088cc] font-bold py-3 rounded-xl hover:bg-[#0088cc]/20 transition">
+                    <span>✈️</span> تلگرام
+                </a>
+
+                <a href="sms:?body={{ book_url|urlencode }}"
+                   class="flex items-center justify-center gap-2 bg-accent/10 text-accent font-bold py-3 rounded-xl hover:bg-accent/20 transition">
+                    <span>📩</span> پیامک
+                </a>
+            </div>
+        </div>
+    </div>
+
+    {# راهنما #}
+    <div class="bg-white rounded-2xl shadow-sm p-5">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl shrink-0">💡</div>
+            <div class="flex-1 text-sm text-darktext/70 leading-relaxed">
+                <div class="font-bold text-primary mb-2">راهنمای استفاده</div>
+                <ul class="space-y-1.5 list-disc pr-5">
+                    <li>این QR رو می‌تونی روی شیشه مغازه یا کارت ویزیت چاپ کنی</li>
+                    <li>لینک رو توی بیو اینستاگرام یا استوری بذاری</li>
+                    <li>مشتری‌ها با یه کلیک می‌تونن نوبت رزرو کنن</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

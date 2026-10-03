@@ -1,0 +1,253 @@
+{% load static jalali %}
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2C3E50">
+    <meta name="csrf-token" content="{{ csrf_token }}">
+
+    <title>{% block title %}آرایشیار{% endblock %}</title>
+
+    {# ═══════════════════════════════════════════════════════════   PWA    ═══════════════════════════════════════════════════════════ #}
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="آرایشیار">
+
+    {# ─── Favicon ─── #}
+    <link rel="icon" href="{% static 'icons/favicon.ico' %}" sizes="any">
+    <link rel="icon" href="{% static 'icons/icon-192.png' %}" type="image/png">
+    <link rel="apple-touch-icon" href="{% static 'icons/apple-touch-icon.png' %}">
+
+    {# ═══════════════════════════════════════════════════════════   فونت وزیرمتن  ═══════════════════════════════════════════════════════════ #}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+
+    {# ═══════════════════════════════════════════════════════════  Tailwind Build شده   ═══════════════════════════════════════════════════════════ #}
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+
+    {# ═══════════════════════════════════════════════════════════   استایل اختصاصی    ═══════════════════════════════════════════════════════════ #}
+    <style>
+        /* ─── آیکون تقویم داخل input ─── */
+        input[data-persian-datepicker] {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232C3E50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 1rem center;
+            padding-left: 3rem !important;
+        }
+    </style>
+
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="min-h-screen flex flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
+    {# ═══════════════════════════════════════════════════════════  هدر  ═══════════════════════════════════════════════════════════ #}
+    <header class="sticky top-0 z-50 bg-primary text-white shadow-md">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+
+            {# ─── لوگو ─── #}
+            <a href="{% url 'core:home' %}" class="flex items-center gap-2 shrink-0">
+                <div
+                    class="w-9 h-9 rounded-full bg-accent flex items-center justify-center font-bold text-primary select-none">
+                    آر
+                </div>
+                <span class="font-bold text-lg hidden sm:inline">آرایشیار</span>
+            </a>
+
+            {# ─── منو ─── #}
+            <nav class="flex items-center gap-1 sm:gap-2 text-sm">
+
+                {% if user.is_authenticated %}
+
+                {% if user_business %}
+                {# ═══ صاحب کسب‌وکار ═══ #}
+                <a href="{% url 'business:dashboard' %}"
+                    class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition font-bold">
+                    📊 <span class="hidden sm:inline">داشبورد</span>
+                </a>
+
+                <a href="{% url 'business:share' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    📱 <span class="hidden sm:inline">QR</span>
+                </a>
+
+                <a href="{% url 'booking:manage_waiting_list' %}"
+                    class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    ⏳ <span class="hidden sm:inline">لیست انتظار</span>
+                </a>
+
+                {% elif is_customer %}
+                {# ═══ مشتری ═══ #}
+                <a href="{% url 'core:home' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    🏠 <span class="hidden sm:inline">خانه</span>
+                </a>
+
+                <a href="{% url 'booking:my_appointments' %}"
+                    class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    📅 <span class="hidden sm:inline">نوبت‌ها</span>
+                </a>
+
+                <a href="{% url 'booking:my_waiting' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    ⏳ <span class="hidden sm:inline">لیست انتظار</span>
+                </a>
+
+                <a href="{% url 'business:register_start' %}"
+                    class="hidden sm:inline-block bg-accent text-primary font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition">
+                    💼 ثبت‌نام کسب‌وکار
+                </a>
+                {% endif %}
+
+                <span class="hidden lg:inline text-white/70 text-xs mr-2">
+                    {{ user.display_name }}
+                </span>
+
+                <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit"
+                        class="bg-danger text-white font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition">
+                        <span class="hidden sm:inline">خروج</span>
+                        <span class="sm:hidden">↪</span>
+                    </button>
+                </form>
+
+                {% else %}
+                {# ═══ مهمان ═══ #}
+                <a href="{% url 'core:home' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    خانه
+                </a>
+
+                <a href="{% url 'accounts:login_phone' %}?next={% url 'business:register_start' %}"
+                    class="bg-accent text-primary font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition text-xs sm:text-sm">
+                    💼 <span class="hidden sm:inline">ثبت‌نام کسب‌وکار</span>
+                    <span class="sm:hidden">کسب‌وکار</span>
+                </a>
+
+                <a href="{% url 'accounts:login_phone' %}"
+                    class="bg-white/10 border border-white/30 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-white/20 transition">
+                    ورود
+                </a>
+                {% endif %}
+
+            </nav>
+        </div>
+    </header>
+
+    {# ═══════════════════════════════════════════════════════════ محتوای اصلی   ═══════════════════════════════════════════════════════════ #}
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 py-6">
+
+        {# ─── پیام‌های سیستم ─── #}
+        <div id="messages-container">
+            {% if messages %}
+            <div class="mb-4 space-y-2">
+                {% for message in messages %}
+                <div class="toast rounded-xl p-3 text-sm font-bold flex items-start gap-2
+                                    {% if message.tags == 'success' %}
+                                        bg-success/10 text-success border border-success/30
+                                    {% elif message.tags == 'error' %}
+                                        bg-danger/10 text-danger border border-danger/30
+                                    {% elif message.tags == 'warning' %}
+                                        bg-warning/10 text-warning border border-warning/30
+                                    {% else %}
+                                        bg-primary/10 text-primary border border-primary/30
+                                    {% endif %}">
+                    <span class="shrink-0">
+                        {% if message.tags == 'success' %}✅
+                        {% elif message.tags == 'error' %}❌
+                        {% elif message.tags == 'warning' %}⚠️
+                        {% else %}ℹ️{% endif %}
+                    </span>
+                    <span class="flex-1 whitespace-pre-line">{{ message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        {% block content %}{% endblock %}
+
+    </main>
+
+    {# ═══════════════════════════════════════════════════════════ فوتر ═══════════════════════════════════════════════════════════ #}
+    <footer class="bg-primary text-white/80 text-center text-sm py-4 mt-8">
+        <div class="max-w-5xl mx-auto px-4">
+            <p class="text-xs">
+                © ۱۴۰۳ آرایشیار — تمام حقوق محفوظ است.
+            </p>
+        </div>
+    </footer>
+
+    {# ═══════════════════════════════════ اسکریپت‌ها═══════════════════════════ #}
+
+    {# ۱. Jalali #}
+    <script src="{% static 'js/jalali.js' %}"></script>
+
+    {# ۲. Persian Datepicker Element #}
+    <script src="{% static 'vendor/persian-datepicker-element/persian-datepicker-element.min.js' %}"></script>
+
+    {# ۳. HTMX #}
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+
+    {# ۴. Alpine.js #}
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+    {# ۵. Datepicker Wrapper #}
+    <script src="{% static 'js/date-picker.js' %}"></script>
+
+    {# ۶. Time Picker #}
+    <script src="{% static 'js/time-picker.js' %}"></script>
+
+    {# ۷. توابع سراسری #}
+    <script>
+        window.showToast = function (message, type) {
+            var container = document.getElementById('messages-container');
+            if (!container) return;
+            var colors = {
+                success: 'bg-success/10 text-success border border-success/30',
+                error: 'bg-danger/10 text-danger border border-danger/30',
+                warning: 'bg-warning/10 text-warning border border-warning/30',
+                info: 'bg-primary/10 text-primary border border-primary/30'
+            };
+            var icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
+            var cls = colors[type] || colors.info;
+            var icon = icons[type] || icons.info;
+            var toast = document.createElement('div');
+            toast.className = 'toast mb-2 rounded-xl p-3 text-sm font-bold flex items-start gap-2 ' + cls;
+            toast.innerHTML = '<span class="shrink-0">' + icon + '</span>' +
+                '<span class="flex-1 whitespace-pre-line">' + message + '</span>';
+            container.appendChild(toast);
+            setTimeout(function () {
+                toast.style.transition = 'opacity 0.3s, transform 0.3s';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                setTimeout(function () { toast.remove(); }, 300);
+            }, 3000);
+        };
+        document.body.addEventListener('htmx:responseError', function () {
+            window.showToast('خطایی رخ داد. دوباره امتحان کن.', 'error');
+        });
+    </script>
+
+    {# ۸. Service Worker #}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker
+                    .register('/sw.js', { scope: '/' })
+                    .then(function (registration) {
+                        console.log('[PWA] Service Worker registered:', registration.scope);
+                    })
+                    .catch(function (error) {
+                        console.warn('[PWA] Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+
+</body>
+
+</html>

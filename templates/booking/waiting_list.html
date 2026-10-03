@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}لیست انتظار — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">⏳ لیست انتظار</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            مشتری‌هایی که منتظر آزاد شدن ساعت هستن.
+        </p>
+    </div>
+
+    <div id="waiting-lists-container">
+        {% include 'booking/partials/_waiting_lists.html' %}
+    </div>
+
+{% endblock %}
