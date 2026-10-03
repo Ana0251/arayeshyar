@@ -75,7 +75,7 @@
 
     {# ═══════════════ دکمه رزرو ═══════════════ #}
     {% if business.is_active %}
-        <a href="{% url 'booking:book_by_slug' business.slug %}"
+        <a href="{% url 'booking:book' business.slug %}"
            class="block text-center bg-accent text-primary font-bold py-4 rounded-2xl hover:opacity-90 active:scale-[0.98] transition mb-5 shadow-md">
             📅 رزرو نوبت
         </a>

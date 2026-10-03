@@ -1,8 +1,8 @@
 """Views اپ booking."""
 
-from .book import book_appointment, book_by_slug
+from .book import book_appointment
 from .customer import (
-    cancel_my_appointment,    # ← ← ← این
+    cancel_my_appointment,
     my_appointments,
     my_waiting,
 )
@@ -20,12 +20,11 @@ from .waiting import (
 
 __all__ = [
     # Public booking
-    "book_by_slug",
     "book_appointment",
     # Customer
     "my_appointments",
     "my_waiting",
-    "cancel_my_appointment",   # ← ← ← این
+    "cancel_my_appointment",
     "join_waiting_list",
     # Owner
     "update_status",

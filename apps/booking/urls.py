@@ -26,11 +26,6 @@ urlpatterns = [
     #  Public Booking
     # ═══════════════════════════════════════════════════════════
     path(
-        "b/<uslug:slug>/",
-        book_by_slug,
-        name="book_by_slug",
-    ),
-    path(
         "b/<uslug:slug>/book/",
         book_appointment,
         name="book",
