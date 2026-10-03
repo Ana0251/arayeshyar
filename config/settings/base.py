@@ -44,6 +44,9 @@ env = environ.Env(
     CSRF_COOKIE_SECURE=(bool, False),
     MAX_UPLOAD_SIZE_MB=(int, 2),
     LOG_LEVEL=(str, "INFO"),
+    PAYMENT_CARD_NUMBER=(str, "6219-8619-0627-4690"),
+    PAYMENT_CARD_OWNER=(str, "آرایشیار"),
+    PAYMENT_CARD_BANK=(str, "بانک ملی"),
 )
 
 env_file = BASE_DIR / ".env"
@@ -171,6 +174,17 @@ DATABASES["default"]["CONN_MAX_AGE"] = 60
 DATABASES["default"]["ATOMIC_REQUESTS"] = False
 
 # ═══════════════════════════════════════════════════════════════
+#  Cache
+# ═══════════════════════════════════════════════════════════════
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "arayeshyar-default",
+    },
+}
+
+# ═══════════════════════════════════════════════════════════════
 #  احراز هویت
 # ═══════════════════════════════════════════════════════════════
 
@@ -280,6 +294,22 @@ SITE_DOMAIN = env("SITE_DOMAIN")
 SITE_NAME = env("SITE_NAME")
 
 # ═══════════════════════════════════════════════════════════════
+#  Admin Branding
+# ═══════════════════════════════════════════════════════════════
+
+ADMIN_SITE_HEADER = "پنل مدیریت آرایشیار"
+ADMIN_SITE_TITLE = "آرایشیار"
+ADMIN_INDEX_TITLE = "به پنل مدیریت آرایشیار خوش آمدید"
+
+# ═══════════════════════════════════════════════════════════════
+#  Payment Info
+# ═══════════════════════════════════════════════════════════════
+
+PAYMENT_CARD_NUMBER = env.str("PAYMENT_CARD_NUMBER", default="6219-8619-0627-4690")
+PAYMENT_CARD_OWNER = env.str("PAYMENT_CARD_OWNER", default="آرایشیار")
+PAYMENT_CARD_BANK = env.str("PAYMENT_CARD_BANK", default="بانک ملی")
+
+# ═══════════════════════════════════════════════════════════════
 #  OTP
 # ═══════════════════════════════════════════════════════════════
 
@@ -308,9 +338,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOG_LEVEL = env("LOG_LEVEL")
 
-# ─── مسیر لاگ‌ها ───
+# ─── مسیر لاگ‌ها (توی production read-only، خطا نمیده) ───
 LOG_DIR = BASE_DIR / "logs"
-LOG_DIR.mkdir(exist_ok=True)
+try:
+    LOG_DIR.mkdir(exist_ok=True)
+except (OSError, PermissionError):
+    pass
 
 LOGGING = {
     "version": 1,
@@ -327,21 +360,19 @@ LOGGING = {
         },
     },
     "handlers": {
-        # ─── Console (همیشه) ───
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
         },
-        # ─── فایل عمومی ───
         "file": {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": LOG_DIR / "arayeshyar.log",
-            "maxBytes": 10 * 1024 * 1024,  # ۱۰ مگابایت
+            "maxBytes": 10 * 1024 * 1024,
             "backupCount": 5,
             "formatter": "verbose",
             "encoding": "utf-8",
+            "delay": True,
         },
-        # ─── فایل خطاها (ERROR+) ───
         "error_file": {
             "class": "logging.handlers.RotatingFileHandler",
             "filename": LOG_DIR / "errors.log",
@@ -350,6 +381,7 @@ LOGGING = {
             "formatter": "verbose",
             "level": "ERROR",
             "encoding": "utf-8",
+            "delay": True,
         },
     },
     "root": {
@@ -385,31 +417,3 @@ LOGGING = {
 # ═══════════════════════════════════════════════════════════════
 
 DJANGO_HTMX_HTTP_RESPONSE_ERRORS = True
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Admin Branding
-# ═══════════════════════════════════════════════════════════════
-
-ADMIN_SITE_HEADER = "پنل مدیریت آرایشیار"
-ADMIN_SITE_TITLE = "آرایشیار"
-ADMIN_INDEX_TITLE = "به پنل مدیریت آرایشیار خوش آمدید"
-
-# ═══════════════════════════════════════════════════════════════
-#  Cache
-# ═══════════════════════════════════════════════════════════════
-
-CACHES = {
-    "default": {
-        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
-        "LOCATION": "arayeshyar-default",
-    },
-}
-
-# ═══════════════════════════════════════════════════════════════
-#  Payment Info
-# ═══════════════════════════════════════════════════════════════
-
-PAYMENT_CARD_NUMBER = env.str("PAYMENT_CARD_NUMBER", default="6219-8619-0627-4690")
-PAYMENT_CARD_OWNER = env.str("PAYMENT_CARD_OWNER", default="آرایشیار")
-PAYMENT_CARD_BANK = env.str("PAYMENT_CARD_BANK", default="بانک سامان")

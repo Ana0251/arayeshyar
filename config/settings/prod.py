@@ -6,8 +6,7 @@
 - ALLOWED_HOSTS محدود
 - HTTPS اجباری
 - HSTS فعال
-- ایمیل واقعی
-- Sentry (اختیاری)
+- لاگ فقط به console (چون فایل‌سیستم read-only هست)
 """
 
 from .base import *  # noqa: F401,F403
@@ -19,7 +18,6 @@ from .base import *  # noqa: F401,F403
 DEBUG = False
 
 # ─── ALLOWED_HOSTS از .env میاد ───
-# باید دامنه‌ی واقعی رو توی .env بذاری
 
 # ═══════════════════════════════════════════════════════════════
 #  امنیت HTTPS
@@ -29,19 +27,20 @@ SECURE_SSL_REDIRECT = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
-# ─── HSTS (HTTP Strict Transport Security) ───
-SECURE_HSTS_SECONDS = 60 * 60 * 24 * 365  # ۱ سال
+# ─── HSTS ───
+# ─── نکته: برای اولین deploy، مقدار کم بذار (۱ روز) ───
+# ─── بعد از پایداری، زیادش کن ───
+SECURE_HSTS_SECONDS = 60 * 60 * 24  # ۱ روز (بعداً ۱ سال کن)
 SECURE_HSTS_INCLUDE_SUBDOMAINS = True
 SECURE_HSTS_PRELOAD = True
 
-# ─── Proxy (برای Liara که پشت proxy هستیم) ───
+# ─── Proxy (Liara پشت proxy هستیم) ───
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 # ═══════════════════════════════════════════════════════════════
 #  Email (SMTP واقعی)
 # ═══════════════════════════════════════════════════════════════
 
-# اگه بعداً ایمیل واقعی خواستی، اینا رو از .env بخون:
 # EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 # EMAIL_HOST = env("EMAIL_HOST")
 # EMAIL_PORT = env.int("EMAIL_PORT", 587)
@@ -50,22 +49,19 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 # EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD")
 
 # ═══════════════════════════════════════════════════════════════
-#  Caching (اختیاری)
+#  Caching (اختیاری — Redis)
 # ═══════════════════════════════════════════════════════════════
 
-# فعلاً از LocMemCache استفاده می‌کنیم. بعداً Redis اضافه کن:
+# اگه Liara Redis داری، اینا رو uncomment کن:
 # CACHES = {
 #     "default": {
-#         "BACKEND": "django_redis.cache.RedisCache",
+#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
 #         "LOCATION": env("REDIS_URL"),
-#         "OPTIONS": {
-#             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-#         },
 #     }
 # }
 
 # ═══════════════════════════════════════════════════════════════
-#  Sentry (اختیاری — برای error tracking)
+#  Sentry (اختیاری)
 # ═══════════════════════════════════════════════════════════════
 
 # import sentry_sdk
@@ -81,12 +77,53 @@ SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 #     )
 
 # ═══════════════════════════════════════════════════════════════
-#  Logging (production)
+#  Logging (production — فقط console)
 # ═══════════════════════════════════════════════════════════════
+#
+# ─── نکته مهم: ───
+# توی Liara، فایل‌سیستم read-only هست. پس فقط console.
+# لاگ‌ها از طریق `liara logs` یا پنل Liara قابل مشاهده‌ست.
 
-# ─── در production: WARNING+ برای django، INFO+ برای apps ───
-LOGGING["root"]["level"] = "WARNING"                    # noqa: F405
-LOGGING["loggers"]["django"]["level"] = "WARNING"       # noqa: F405
-LOGGING["loggers"]["django.security"]["level"] = "WARNING"  # noqa: F405
-LOGGING["loggers"]["apps"]["level"] = "INFO"            # noqa: F405
-
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "[{asctime}] {levelname} {name}: {message}",
+            "style": "{",
+            "datefmt": "%Y-%m-%d %H:%M:%S",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.db.backends": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "django.security": {
+            "handlers": ["console"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+        "apps": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
