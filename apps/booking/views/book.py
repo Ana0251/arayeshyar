@@ -25,22 +25,6 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════
-#  Redirect از لینک کوتاه
-# ═══════════════════════════════════════════════════════════════
-
-
-@require_http_methods(["GET"])
-def book_by_slug(request: HttpRequest, slug: str) -> HttpResponse:
-    """ورود از لینک اختصاصی → ریدایرکت به صفحه رزرو."""
-    business = get_business_by_slug(slug)
-    if not business:
-        messages.error(request, _("کسب‌وکار مورد نظر پیدا نشد."))
-        return redirect("core:home")
-
-    return redirect("booking:book", slug=slug)
-
-
-# ═══════════════════════════════════════════════════════════════
 #  Book Appointment
 # ═══════════════════════════════════════════════════════════════
 
@@ -106,9 +90,7 @@ def _handle_booking_post(request: HttpRequest, business: Business) -> HttpRespon
                 is_active=True,
             ).first()
 
-        # ═══════════════════════════════════════════════════════════
-        #  ⚡ ذخیره‌ی نام مشتری (اگه عوض شده)
-        # ═══════════════════════════════════════════════════════════
+        # ─── ذخیره‌ی نام مشتری (اگه عوض شده) ───
         customer = request.user
         new_name = (data.get("customer_name") or "").strip()
 
@@ -256,7 +238,6 @@ def _render_booking_page(
 
     # ─── فرم ───
     if form is None:
-        # ⚡ اسم و شماره از user (اگه full_name داره، از اون استفاده کن)
         customer_name = request.user.display_name
         customer_phone = request.user.phone
 

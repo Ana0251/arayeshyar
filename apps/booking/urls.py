@@ -7,7 +7,6 @@ from django.urls import path
 from .views import (
     add_manual_appointment,
     book_appointment,
-    book_by_slug,
     cancel_my_appointment,
     convert_waiting_to_appointment,
     delete_appointment,

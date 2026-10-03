@@ -15,7 +15,6 @@
     <div class="bg-primary text-white rounded-2xl shadow-md overflow-hidden mb-5">
         <div class="p-6 flex items-center gap-5 flex-wrap">
 
-            {# آواتار #}
             {% if business.avatar %}
                 <img src="{{ business.avatar.url }}"
                      alt="{{ business.name }}"
@@ -134,7 +133,7 @@
         </div>
     {% endif %}
 
-    {# ═══════════════ خدمات عمومی (اگه شخصی یا ایستگاه‌دار نبود) ═══════════════ #}
+    {# ═══════════════ خدمات عمومی ═══════════════ #}
     {% if services %}
         <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
             <div class="bg-cream px-5 py-3 border-b border-black/5">
