@@ -37,6 +37,12 @@ SECURE_HSTS_PRELOAD = True
 # ─── Proxy (Liara پشت proxy هستیم) ───
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
+
+USE_X_FORWARDED_HOST = True
+
+# ─── این هم خوبه: از X-Forwarded-Port استفاده کنه ───
+USE_X_FORWARDED_PORT = True
+
 # ═══════════════════════════════════════════════════════════════
 #  Email (SMTP واقعی)
 # ═══════════════════════════════════════════════════════════════
