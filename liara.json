@@ -1,0 +1,30 @@
+{
+    "platform": "django",
+    "app": "arayeshyar",
+    "port": 8000,
+    "python": {
+        "version": "3.13"
+    },
+    "args": [
+        "gunicorn",
+        "config.wsgi:application",
+        "--bind",
+        "0.0.0.0:8000",
+        "--workers",
+        "2",
+        "--timeout",
+        "120"
+    ],
+    "disks": [
+        {
+            "name": "media",
+            "mountTo": "/app/media",
+            "size": 1
+        }
+    ],
+    "env": {
+        "DJANGO_SETTINGS_MODULE": "config.settings.prod",
+        "DJANGO_ENV": "prod",
+        "DEBUG": "False"
+    }
+}
