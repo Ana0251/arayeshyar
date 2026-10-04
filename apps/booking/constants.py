@@ -53,7 +53,7 @@ class WaitingStatus(models.TextChoices):
 DEFAULT_SLOT_DURATION = 30
 
 # ─── حداکثر روزهای آینده برای رزرو ───
-MAX_BOOKING_DAYS_AHEAD = 90
+MAX_BOOKING_DAYS_AHEAD = 7
 
 # ─── حداقل مدت خدمت (دقیقه) ───
 MIN_SERVICE_DURATION = 5

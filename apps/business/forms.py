@@ -9,17 +9,14 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.widgets import JalaliDateInput, JalaliTimeInput
-from .constants import (
-    Plan,
-    PLAN_PRICES,
-    ProfileField,
-)
+from .constants import ProfileField
 from .models import (
     ActivityType,
     Break,
     Payment,
     Business,
     DayOff,
+    Plan,
     ProfileChangeRequest,
     Service,
     SpecialWorkingHours,
@@ -507,13 +504,20 @@ class RegisterBusinessInfoForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, is_salon: bool = False, **kwargs):
+    def __init__(self, *args, business=None, **kwargs):
         super().__init__(*args, **kwargs)
-        self.is_salon = is_salon
+        self.business = business
 
-        if not is_salon:
-            self.fields["business_license"].required = False
-            self.fields["entrance_photo"].required = False
+        # ─── فقط پلن‌های پولی ───
+        self.fields["plan"].queryset = Plan.objects.filter(
+            is_active=True,
+            is_paid=True,
+        ).order_by("order", "price")
+
+        # ─── label فارسی ───
+        self.fields["plan"].label_from_instance = lambda p: (
+            f"{p.icon} {p.name} — {p.price:,} تومان"
+        )
             
 # ═══════════════════════════════════════════════════════════════
 #  PaymentForm
@@ -525,8 +529,7 @@ class PaymentForm(forms.ModelForm):
     فرم ثبت پرداخت (کارت به کارت).
 
     ─── نکته: ───
-    کاربر مبلغ رو کارت به کارت می‌کنه و رسید رو آپلود می‌کنه.
-    ادمین بعداً بررسی می‌کنه.
+    plan از FK به Plan میاد.
     """
 
     class Meta:
@@ -562,10 +565,15 @@ class PaymentForm(forms.ModelForm):
         self.business = business
 
         # ─── فقط پلن‌های پولی ───
-        self.fields["plan"].choices = [
-            (Plan.BASIC, f"⭐ پلن پایه — {PLAN_PRICES[Plan.BASIC]:,} تومان"),
-            (Plan.PRO, f"💎 پلن ویژه — {PLAN_PRICES[Plan.PRO]:,} تومان"),
-        ]
+        self.fields["plan"].queryset = Plan.objects.filter(
+            is_active=True,
+            is_paid=True,
+        ).order_by("order", "price")
+
+        # ─── label فارسی ───
+        self.fields["plan"].label_from_instance = lambda p: (
+            f"{p.icon} {p.name} — {p.price:,} تومان"
+        )
 
     def clean_receipt(self):
         receipt = self.cleaned_data.get("receipt")

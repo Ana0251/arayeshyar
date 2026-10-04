@@ -1,218 +1,124 @@
 {% extends 'base.html' %}
 {% load static jalali %}
 
-{% block title %}خرید پلن — {{ business.name }}{% endblock %}
+{% block title %}پلن من — {{ business.name }}{% endblock %}
 
 {% block content %}
 
-    {# ─── بازگشت ─── #}
-    <a href="{% url 'business:my_plan' %}"
+    <a href="{% url 'business:dashboard' %}"
        class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
-        ← بازگشت به پلن من
+        ← بازگشت به داشبورد
     </a>
 
-    {# ─── عنوان ─── #}
     <div class="mb-5">
-        <h1 class="text-2xl font-bold text-primary">💎 خرید / تمدید پلن</h1>
+        <h1 class="text-2xl font-bold text-primary">💎 پلن من</h1>
         <p class="text-sm text-darktext/60 mt-1">
-            پلن مورد نظرت رو انتخاب کن، مبلغ رو کارت به کارت کن، و رسید رو آپلود کن.
+            اطلاعات پلن فعلی و تاریخچه‌ی پرداخت‌ها.
         </p>
     </div>
 
-    {# ═══════════════════════════════════════════════════════════
-         پلن‌ها
-    ═══════════════════════════════════════════════════════════ #}
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+    {# ═══════════════ کارت پلن فعلی ═══════════════ #}
+    {% if business.plan %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="p-5 flex items-center gap-4
+                        {% if not business.is_plan_active %}bg-danger/5
+                        {% elif business.plan.has_pro_features %}bg-gradient-to-l from-accent/20 to-accent/5
+                        {% elif business.plan.is_paid %}bg-primary/5
+                        {% else %}bg-warning/5{% endif %}">
 
-        {# ─── پلن پایه ─── #}
-        <div class="bg-white rounded-2xl shadow-md p-5 border-2 border-black/5">
-            <div class="text-center mb-4">
-                <div class="text-3xl mb-2">⭐</div>
-                <h3 class="font-bold text-lg text-primary">پلن پایه</h3>
-                <div class="text-2xl font-bold text-accent mt-2">
-                    {{ plan_prices.basic|floatformat:0 }}
-                    <span class="text-sm font-normal text-darktext/50">تومان / ماه</span>
-                </div>
-                <p class="text-xs text-darktext/60 mt-2">
-                    {{ plan_durations.basic }} روز اعتبار
-                </p>
-            </div>
-
-            <ul class="space-y-2 text-sm text-darktext/70">
-                <li class="flex items-start gap-2">
-                    <span class="text-success shrink-0">✅</span>
-                    <span>نوبت‌دهی آنلاین</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-success shrink-0">✅</span>
-                    <span>لینک اختصاصی + QR Code</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-success shrink-0">✅</span>
-                    <span>پنل کسب‌وکار</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-success shrink-0">✅</span>
-                    <span>مدیریت خدمات و ایستگاه‌ها</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-success shrink-0">✅</span>
-                    <span>برنامه هفتگی</span>
-                </li>
-            </ul>
-        </div>
-
-        {# ─── پلن ویژه ─── #}
-        <div class="bg-white rounded-2xl shadow-md p-5 border-2 border-accent/40 relative">
-            <span class="absolute -top-3 left-1/2 -translate-x-1/2 bg-accent text-primary text-xs font-bold px-3 py-1 rounded-full">
-                پیشنهاد ویژه
-            </span>
-
-            <div class="text-center mb-4 mt-2">
-                <div class="text-3xl mb-2">💎</div>
-                <h3 class="font-bold text-lg text-primary">پلن ویژه</h3>
-                <div class="text-2xl font-bold text-accent mt-2">
-                    {{ plan_prices.pro|floatformat:0 }}
-                    <span class="text-sm font-normal text-darktext/50">تومان / ماه</span>
-                </div>
-                <p class="text-xs text-darktext/60 mt-2">
-                    {{ plan_durations.pro }} روز اعتبار
-                </p>
-            </div>
-
-            <ul class="space-y-2 text-sm text-darktext/70">
-                <li class="flex items-start gap-2">
-                    <span class="text-success shrink-0">✅</span>
-                    <span>همه‌ی امکانات پایه</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-accent shrink-0">🎁</span>
-                    <span>یادآور پیامکی</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-accent shrink-0">🎁</span>
-                    <span>لیست انتظار هوشمند</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-accent shrink-0">🎁</span>
-                    <span>گزارش درآمد</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-accent shrink-0">🎁</span>
-                    <span>ساعات طلایی</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-accent shrink-0">🎁</span>
-                    <span>مشتریان خواب‌رفته</span>
-                </li>
-                <li class="flex items-start gap-2">
-                    <span class="text-accent shrink-0">🎁</span>
-                    <span>نوبت‌های تکراری</span>
-                </li>
-            </ul>
-        </div>
-    </div>
-
-    {# ═══════════════════════════════════════════════════════════
-         اطلاعات کارت
-    ═══════════════════════════════════════════════════════════ #}
-    <div class="bg-accent/10 border-2 border-accent/30 rounded-2xl p-5 mb-5">
-        <div class="flex items-start gap-3">
-            <div class="text-3xl shrink-0">💳</div>
-            <div class="flex-1 text-sm text-darktext/80 leading-relaxed">
-                <div class="font-bold text-accent mb-2">
-                    اطلاعات کارت برای واریز
+                {# ─── آیکون پلن ─── #}
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0
+                            {% if business.plan.has_pro_features %}bg-accent/20
+                            {% elif business.plan.is_paid %}bg-primary/10
+                            {% else %}bg-warning/20{% endif %}">
+                    {{ business.plan.icon }}
                 </div>
 
-                <div class="bg-white rounded-xl p-3 mb-3 font-mono" dir="ltr">
-                    <div class="text-lg font-bold text-primary tracking-wider text-center">
-                        {{ card_info.number }}
+                {# ─── اطلاعات پلن ─── #}
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-lg text-primary">
+                            {{ business.plan.name }}
+                        </span>
+
+                        {% if not business.is_plan_active %}
+                            <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">
+                                ❌ منقضی شده
+                            </span>
+                        {% elif business.plan_days_left is not None and business.plan_days_left <= 7 %}
+                            <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">
+                                ⚠️ {{ business.plan_days_left }} روز مونده
+                            </span>
+                        {% else %}
+                            <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">
+                                ✅ فعال
+                            </span>
+                        {% endif %}
                     </div>
-                    <div class="text-xs text-darktext/60 mt-1 text-center">
-                        {{ card_info.bank }} — به نام {{ card_info.owner }}
-                    </div>
+
+                    {% if business.plan_expires_at %}
+                        <div class="text-sm text-darktext/70 mt-1">
+                            📅 تاریخ انقضا: <strong>{{ business.plan_expires_at|to_jalali }}</strong>
+                            {% if business.plan_days_left is not None and business.plan_days_left > 0 %}
+                                <span class="text-darktext/50">({{ business.plan_days_left }} روز مونده)</span>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+
+                    {% if business.plan.is_paid and business.plan.price %}
+                        <div class="text-xs text-darktext/60 mt-1">
+                            💰 قیمت: {{ business.plan.price|floatformat:0 }} تومان
+                            · {{ business.plan.duration_days }} روز اعتبار
+                        </div>
+                    {% endif %}
+
+                    {% if business.plan.description %}
+                        <div class="text-xs text-darktext/60 mt-2">
+                            {{ business.plan.description }}
+                        </div>
+                    {% endif %}
                 </div>
 
-                <p class="text-xs">
-                    ⚠️ بعد از واریز، <strong>عکس رسید</strong> رو در فرم زیر آپلود کن.
-                </p>
+                {# ─── دکمه ─── #}
+                <div class="shrink-0">
+                    <a href="{% url 'business:buy_plan' %}"
+                       class="bg-accent text-primary font-bold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm">
+                        🚀 ارتقا / تمدید
+                    </a>
+                </div>
             </div>
-        </div>
-    </div>
 
-    {# ═══════════════════════════════════════════════════════════
-         فرم پرداخت
-    ═══════════════════════════════════════════════════════════ #}
-    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
-        <div class="bg-primary text-white px-5 py-3">
-            <h2 class="font-bold">📝 ثبت اطلاعات پرداخت</h2>
-        </div>
-
-        <form method="post" enctype="multipart/form-data" class="p-5 space-y-5">
-            {% csrf_token %}
-
-            {% if form.non_field_errors %}
-                <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
-                    {% for error in form.non_field_errors %}
-                        <p>⚠️ {{ error }}</p>
-                    {% endfor %}
+            {# ─── نوار هشدار ─── #}
+            {% if not business.is_plan_active %}
+                <div class="bg-danger/10 border-t border-danger/30 px-5 py-3 text-sm text-danger font-bold">
+                    ⚠️ پلنت منقضی شده! برای ادامه‌ی استفاده، یه پلن جدید بخر.
+                </div>
+            {% elif not business.plan.is_paid and business.plan_days_left is not None and business.plan_days_left <= 7 %}
+                <div class="bg-warning/10 border-t border-warning/30 px-5 py-3 text-sm text-warning font-bold">
+                    ⏰ فقط {{ business.plan_days_left }} روز از دوره تستت مونده! برای ادامه، پلن بخر.
                 </div>
             {% endif %}
+        </div>
+    {% endif %}
 
-            {# ─── پلن ─── #}
-            <div>
-                <label class="block text-sm font-bold text-darktext mb-1.5">
-                    پلن مورد نظر <span class="text-danger">*</span>
-                </label>
-                {{ form.plan }}
-                {% if form.plan.errors %}
-                    <p class="text-danger text-xs mt-1">{{ form.plan.errors.0 }}</p>
-                {% endif %}
+    {# ═══════════════ تاریخچه پرداخت‌ها ═══════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between">
+            <h2 class="font-bold text-primary">📜 تاریخچه پرداخت‌ها</h2>
+            <span class="text-xs text-darktext/60">{{ payments|length }} پرداخت</span>
+        </div>
+
+        {% if payments %}
+            <div class="divide-y divide-black/5">
+                {% for payment in payments %}
+                    {% include 'business/partials/_payment_row.html' with payment=payment %}
+                {% endfor %}
             </div>
-
-            {# ─── کد پیگیری ─── #}
-            <div>
-                <label class="block text-sm font-bold text-darktext mb-1.5">
-                    کد پیگیری (اختیاری)
-                </label>
-                {{ form.tracking_code }}
-                <p class="text-xs text-darktext/50 mt-1">
-                    شماره پیگیری تراکنش (اگه داشتی)
-                </p>
+        {% else %}
+            <div class="p-8 text-center text-darktext/50">
+                هنوز پرداختی ثبت نکردی.
             </div>
-
-            {# ─── رسید ─── #}
-            <div>
-                <label class="block text-sm font-bold text-darktext mb-1.5">
-                    عکس رسید <span class="text-danger">*</span>
-                </label>
-                {{ form.receipt }}
-                {% if form.receipt.errors %}
-                    <p class="text-danger text-xs mt-1">{{ form.receipt.errors.0 }}</p>
-                {% endif %}
-                <p class="text-xs text-darktext/50 mt-1">
-                    JPG, PNG · حداکثر ۲ مگابایت
-                </p>
-            </div>
-
-            {# ─── یادداشت ─── #}
-            <div>
-                <label class="block text-sm font-bold text-darktext mb-1.5">
-                    یادداشت (اختیاری)
-                </label>
-                {{ form.customer_note }}
-            </div>
-
-            {# ─── دکمه ثبت ─── #}
-            <button type="submit"
-                    class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition">
-                📩 ثبت درخواست
-            </button>
-
-            <p class="text-xs text-darktext/50 text-center">
-                ⏱ بعد از تأیید مدیر، پلنت به‌صورت خودکار فعال میشه.
-            </p>
-        </form>
+        {% endif %}
     </div>
 
 {% endblock %}

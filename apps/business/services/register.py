@@ -23,7 +23,7 @@ from django.utils.text import slugify
 from apps.accounts.constants import Role
 from apps.accounts.models import User
 
-from ..constants import Plan
+from ..models import Plan
 from ..models import (
     ActivityType,
     Business,
@@ -129,6 +129,7 @@ class RegisterService:
             )
 
         # ─── Business ───
+        trial_plan = Plan.objects.filter(slug="trial").first()
         business = Business(
             owner=self.user,
             target_audience=audience,
@@ -140,7 +141,7 @@ class RegisterService:
             region=info_data.get("region", ""),
             address=info_data.get("address", ""),
             bio=info_data.get("bio", ""),
-            plan=Plan.TRIAL,
+            plan=trial_plan,
             is_active=False,  # ← منتظر تأیید ادمین
         )
 
@@ -153,7 +154,12 @@ class RegisterService:
             business.entrance_photo = files["entrance_photo"]
 
         business.save()
-
+        # ─── ست کردن plan_expires_at ───
+        if trial_plan:
+            business.plan_expires_at = (
+                timezone.localdate() + timedelta(days=trial_plan.duration_days)
+            )
+            business.save(update_fields=["plan_expires_at"])
         # ═══ بعد از save، signal ها اجرا میشن: ═══
         # - BusinessOwnerProfile
         # - Staff صاحب (is_owner=True)

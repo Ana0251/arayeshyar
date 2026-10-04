@@ -13,10 +13,8 @@ from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
 from .constants import (
-    PLAN_LABELS,
     ChangeRequestStatus,
     PaymentStatus,
-    Plan,
 )
 from .models import (
     ActivityType,
@@ -24,6 +22,7 @@ from .models import (
     Business,
     DayOff,
     Payment,
+    Plan,
     ProfileChangeRequest,
     Service,
     SpecialWorkingHours,
@@ -92,7 +91,94 @@ class ActivityTypeAdmin(admin.ModelAdmin):
     search_fields = ("name", "slug")
     ordering = ("is_salon", "order")
 
+# ═══════════════════════════════════════════════════════════════
+#  Plan
+# ═══════════════════════════════════════════════════════════════
 
+
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    """Admin برای Plan."""
+
+    list_display = (
+        "icon",
+        "name",
+        "slug",
+        "price_display",
+        "duration_days",
+        "features_count",
+        "order",
+        "is_active",
+        "is_paid",
+        "has_pro_features",
+    )
+    list_editable = ("order", "is_active")
+    list_filter = ("is_active", "is_paid", "has_pro_features")
+    search_fields = ("name", "slug", "description")
+    ordering = ("order", "price")
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        (
+            _("اطلاعات پایه"),
+            {
+                "fields": (
+                    "slug",
+                    "name",
+                    "icon",
+                    "description",
+                    "order",
+                )
+            },
+        ),
+        (
+            _("قیمت و مدت"),
+            {
+                "fields": (
+                    "price",
+                    "duration_days",
+                )
+            },
+        ),
+        (
+            _("ویژگی‌ها"),
+            {
+                "fields": ("features",),
+                "description": _(
+                    "لیست ویژگی‌ها رو به صورت JSON بنویس. مثال: "
+                    '["نوبت‌دهی آنلاین", "QR Code"]'
+                ),
+            },
+        ),
+        (
+            _("وضعیت"),
+            {
+                "fields": (
+                    "is_active",
+                    "is_paid",
+                    "has_pro_features",
+                )
+            },
+        ),
+        (
+            _("تاریخ‌ها"),
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    @admin.display(description=_("قیمت"))
+    def price_display(self, obj: Plan) -> str:
+        if not obj.is_paid or obj.price == 0:
+            return "رایگان"
+        return f"{obj.price:,} تومان"
+
+    @admin.display(description=_("تعداد ویژگی"))
+    def features_count(self, obj: Plan) -> int:
+        return obj.features_count
+    
 # ═══════════════════════════════════════════════════════════════
 #  Business
 # ═══════════════════════════════════════════════════════════════
@@ -692,7 +778,9 @@ class PaymentAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("پلن"))
     def plan_badge(self, obj: Payment) -> str:
-        return PLAN_LABELS.get(obj.plan, obj.plan)
+        if not obj.plan:
+            return "—"
+        return f"{obj.plan.icon} {obj.plan.name}"
 
     @admin.display(description=_("مبلغ"))
     def amount_display(self, obj: Payment) -> str:

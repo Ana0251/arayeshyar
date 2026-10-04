@@ -43,7 +43,8 @@
     {% block extra_head %}{% endblock %}
 </head>
 
-<body class="min-h-screen flex flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="min-h-screen flex flex-col" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+      x-data="{ sidebarOpen: false }">
 
     {# ═══════════════════════════════════════════════════════════  هدر  ═══════════════════════════════════════════════════════════ #}
     <header class="sticky top-0 z-50 bg-primary text-white shadow-md">
@@ -190,16 +191,19 @@
     {# ۳. HTMX #}
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 
-    {# ۴. Alpine.js #}
+    {# ۴. Alpine.js Collapse Plugin (باید قبل از Alpine بیاد) #}
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
+
+    {# ۵. Alpine.js (core) #}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    {# ۵. Datepicker Wrapper #}
+    {# ۶. Datepicker Wrapper #}
     <script src="{% static 'js/date-picker.js' %}"></script>
 
-    {# ۶. Time Picker #}
+    {# ۷. Time Picker #}
     <script src="{% static 'js/time-picker.js' %}"></script>
 
-    {# ۷. توابع سراسری #}
+    {# ۸. توابع سراسری #}
     <script>
         window.showToast = function (message, type) {
             var container = document.getElementById('messages-container');
@@ -230,7 +234,7 @@
         });
     </script>
 
-    {# ۸. Service Worker #}
+    {# ۹. Service Worker #}
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function () {

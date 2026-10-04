@@ -15,12 +15,12 @@ from django.utils import timezone
 
 from apps.accounts.constants import Role
 from apps.accounts.models import User
-from apps.business.constants import Plan
 from apps.business.models import (
     ActivityType,
     Break,
     Business,
     DayOff,
+    Plan,
     Service,
     SpecialWorkingHours,
     Staff,
@@ -53,6 +53,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("🌱 شروع seed..."))
 
+        # ─── چک کن Plan ها وجود داشته باشن ───
+        if not Plan.objects.exists():
+            self.stdout.write(
+                self.style.ERROR(
+                    "❌ هیچ Plan ای وجود نداره! اول `python manage.py migrate` بزن."
+                )
+            )
+            return
+
         if options["clear"]:
             self._clear_data()
 
@@ -77,7 +86,6 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.WARNING("🧹 پاک کردن داده‌های قبلی..."))
 
-        # ─── به ترتیب وابستگی ───
         Appointment.objects.all().delete()
         WaitingList.objects.all().delete()
         BlockedCustomer.objects.all().delete()
@@ -178,22 +186,26 @@ class Command(BaseCommand):
         """ساخت کسب‌وکارهای تستی."""
         self.stdout.write("🏪 ساخت کسب‌وکارها...")
 
-        self._create_barber_ali(audiences["men"], activities["barber"])
-        self._create_sara_salon(audiences["women"], activities["beauty-salon"])
-        self._create_rose_laser(audiences["women"], activities["laser-clinic"])
+        # ─── Plan ها ───
+        try:
+            trial_plan = Plan.objects.get(slug="trial")
+            pro_plan = Plan.objects.get(slug="pro")
+        except Plan.DoesNotExist:
+            self.stdout.write(
+                self.style.ERROR("❌ Plan ها پیدا نشدن! اول migrate بزن.")
+            )
+            return
+
+        self._create_barber_ali(audiences["men"], activities["barber"], trial_plan)
+        self._create_sara_salon(audiences["women"], activities["beauty-salon"], trial_plan)
+        self._create_rose_laser(audiences["women"], activities["laser-clinic"], pro_plan)
 
     # ───────────────────────────────────────────────────────────
     #  Helper: اطمینان از وجود Station و Staff
     # ───────────────────────────────────────────────────────────
 
     def _ensure_station_and_staff(self, business):
-        """
-        اطمینان از وجود Station و Staff برای کسب‌وکار.
-
-        ─── چرا؟ ───
-        سیگنال post_save ممکنه Station رو نساخته باشه (اگه business از
-        قبل وجود داشته). اینجا دستی چک می‌کنیم.
-        """
+        """اطمینان از وجود Station و Staff برای کسب‌وکار."""
         business.refresh_from_db()
 
         # ─── Staff صاحب ───
@@ -205,20 +217,14 @@ class Command(BaseCommand):
                 phone=business.owner.phone,
                 is_owner=True,
             )
-            self.stdout.write(
-                self.style.WARNING(f"   ⚠️ Staff صاحب برای {business.name} ساخته شد")
-            )
 
-        # ─── Station پیش‌فرض (اگه شخصی) ───
+        # ─── Station پیش‌فرض ───
         station = business.stations.filter(is_active=True).first()
         if not station:
             station = Station.objects.create(
                 business=business,
                 name="محل کار",
                 order=0,
-            )
-            self.stdout.write(
-                self.style.WARNING(f"   ⚠️ Station پیش‌فرض برای {business.name} ساخته شد")
             )
 
         return station, owner_staff
@@ -227,7 +233,7 @@ class Command(BaseCommand):
     #  کسب‌وکار ۱: آرایشگر علی (شخصی)
     # ───────────────────────────────────────────────────────────
 
-    def _create_barber_ali(self, audience, activity):
+    def _create_barber_ali(self, audience, activity, plan):
         """آرایشگر علی (شخصی)."""
         user, created = User.objects.get_or_create(
             phone="09111111111",
@@ -248,8 +254,8 @@ class Command(BaseCommand):
                 "region": "ونک",
                 "address": "خیابان ونک، پلاک ۱۲",
                 "bio": "۱۰ سال سابقه، متخصص اصلاح کلاسیک",
-                "plan": Plan.TRIAL,
-                "plan_expires_at": timezone.localdate() + timedelta(days=30),
+                "plan": plan,   # ← FK به Plan
+                "plan_expires_at": timezone.localdate() + timedelta(days=plan.duration_days),
                 "is_active": True,
                 "auto_confirm": True,
             },
@@ -299,7 +305,7 @@ class Command(BaseCommand):
     #  کسب‌وکار ۲: سالن زیبایی سارا
     # ───────────────────────────────────────────────────────────
 
-    def _create_sara_salon(self, audience, activity):
+    def _create_sara_salon(self, audience, activity, plan):
         """سالن زیبایی سارا."""
         user, created = User.objects.get_or_create(
             phone="09122222222",
@@ -320,7 +326,8 @@ class Command(BaseCommand):
                 "region": "سعادت‌آباد",
                 "address": "بلوار سعادت‌آباد، پلاک ۴۵",
                 "bio": "سالن تخصصی زیبایی و آرایش",
-                "plan": Plan.TRIAL,
+                "plan": plan,
+                "plan_expires_at": timezone.localdate() + timedelta(days=plan.duration_days),
                 "is_active": True,
                 "auto_confirm": False,
             },
@@ -330,7 +337,6 @@ class Command(BaseCommand):
 
         self.stdout.write(f"   + {business}")
 
-        # ─── اطمینان از Staff صاحب ───
         _, sara_staff = self._ensure_station_and_staff(business)
 
         # ─── کارمندها ───
@@ -410,7 +416,7 @@ class Command(BaseCommand):
     #  کسب‌وکار ۳: کلینیک لیزر رز
     # ───────────────────────────────────────────────────────────
 
-    def _create_rose_laser(self, audience, activity):
+    def _create_rose_laser(self, audience, activity, plan):
         """کلینیک لیزر رز."""
         user, created = User.objects.get_or_create(
             phone="09133333333",
@@ -431,7 +437,8 @@ class Command(BaseCommand):
                 "region": "سعادت‌آباد",
                 "address": "بلوار دریا، پلاک ۸۸",
                 "bio": "لیزر تخصصی با آخرین تکنولوژی",
-                "plan": Plan.PRO,
+                "plan": plan,
+                "plan_expires_at": timezone.localdate() + timedelta(days=plan.duration_days),
                 "is_active": True,
                 "auto_confirm": True,
             },
@@ -441,7 +448,6 @@ class Command(BaseCommand):
 
         self.stdout.write(f"   + {business}")
 
-        # ─── اطمینان از Staff صاحب ───
         _, doctor = self._ensure_station_and_staff(business)
 
         # ─── اپراتورها ───
@@ -547,6 +553,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.MIGRATE_HEADING("📊 خلاصه:"))
         self.stdout.write(f"   مخاطبین: {TargetAudience.objects.count()}")
         self.stdout.write(f"   انواع فعالیت: {ActivityType.objects.count()}")
+        self.stdout.write(f"   پلن‌ها: {Plan.objects.count()}")
         self.stdout.write(f"   کسب‌وکارها: {Business.objects.count()}")
         self.stdout.write(f"   کارمندها: {Staff.objects.count()}")
         self.stdout.write(f"   ایستگاه‌ها: {Station.objects.count()}")

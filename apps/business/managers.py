@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 from django.db import models
 
-from .constants import ChangeRequestStatus, Plan
+from .constants import ChangeRequestStatus
 
 if TYPE_CHECKING:
     pass
@@ -37,7 +37,7 @@ class BusinessQuerySet(models.QuerySet):
 
     def with_pro(self) -> "BusinessQuerySet":
         """کسب‌وکارهای با پلن ویژه."""
-        return self.filter(plan=Plan.PRO)
+        return self.filter(plan__has_pro_features=True)
 
     def with_owner(self) -> "BusinessQuerySet":
         """با owner join شده."""
@@ -46,6 +46,10 @@ class BusinessQuerySet(models.QuerySet):
     def with_activity(self) -> "BusinessQuerySet":
         """با activity_type و target_audience join شده."""
         return self.select_related("activity_type", "target_audience")
+
+    def with_plan(self) -> "BusinessQuerySet":
+        """با plan join شده."""
+        return self.select_related("plan")
 
 
 class BusinessManager(models.Manager):
@@ -76,18 +80,6 @@ class ProfileChangeRequestManager(models.Manager):
     def pending(self):
         """درخواست‌های در انتظار."""
         return self.filter(status=ChangeRequestStatus.PENDING)
-
-    def for_business(self, business):
-        """درخواست‌های یه کسب‌وکار."""
-        return self.filter(business=business)
-
-
-class ProfileChangeRequestManager(models.Manager):
-    """Manager برای ProfileChangeRequest."""
-
-    def pending(self):
-        """درخواست‌های در انتظار."""
-        return self.filter(status="pending")
 
     def for_business(self, business):
         """درخواست‌های یه کسب‌وکار."""

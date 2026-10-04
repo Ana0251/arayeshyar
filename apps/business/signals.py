@@ -13,12 +13,12 @@ import logging
 
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 from apps.accounts.constants import Role
 from apps.accounts.models import BusinessOwnerProfile
 
-from .constants import Plan
-from .models import Business, Staff, Station
+from .models import Business, Plan, Staff, Station
 
 logger = logging.getLogger(__name__)
 
@@ -59,15 +59,18 @@ def on_business_created(
     # ─── ۲. BusinessOwnerProfile ───
     BusinessOwnerProfile.objects.get_or_create(user=owner)
 
-    # ─── ۳. تنظیم trial (اگه خالیه) ───
-    if instance.plan == Plan.TRIAL and not instance.plan_expires_at:
+    # ─── ۳. تنظیم plan_expires_at (اگه پلن غیرپولی و خالیه) ───
+    if instance.plan and not instance.plan.is_paid and not instance.plan_expires_at:
         from datetime import timedelta
 
-        from django.utils import timezone
-
-        instance.plan_expires_at = timezone.localdate() + timedelta(days=30)
+        instance.plan_expires_at = (
+            timezone.localdate() + timedelta(days=instance.plan.duration_days)
+        )
         instance.save(update_fields=["plan_expires_at", "updated_at"])
-        logger.info(f"Trial set for {instance.name}: 30 days")
+        logger.info(
+            f"Plan expires set for {instance.name}: "
+            f"{instance.plan.duration_days} days"
+        )
 
     # ─── ۴. Staff صاحب ───
     owner_staff, staff_created = Staff.objects.get_or_create(

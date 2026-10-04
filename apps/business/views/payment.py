@@ -14,16 +14,9 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.core.decorators import business_required
 
-from ..constants import (
-    PLAN_DURATION_DAYS,
-    PLAN_LABELS,
-    PLAN_PRICES,
-    PaymentMethod,
-    PaymentStatus,
-    Plan,
-)
+from ..constants import PaymentMethod, PaymentStatus
 from ..forms import PaymentForm
-from ..models import Payment
+from ..models import Payment, Plan
 
 logger = logging.getLogger(__name__)
 
@@ -44,10 +37,6 @@ def my_plan(request: HttpRequest) -> HttpResponse:
     context = {
         "business": business,
         "payments": payments,
-        "plan_label": PLAN_LABELS.get(business.plan, business.plan),
-        "plan_price": PLAN_PRICES.get(business.plan, 0),
-        "is_active": business.is_plan_active,
-        "days_left": business.plan_days_left,
         "today": timezone.localdate(),
     }
 
@@ -65,19 +54,29 @@ def buy_plan(request: HttpRequest) -> HttpResponse:
     """صفحه‌ی خرید پلن (کارت به کارت)."""
     business = request.user.business
 
+    # ─── پلن‌های فعال (غیر از trial) ───
+    paid_plans = Plan.objects.filter(
+        is_active=True,
+        is_paid=True,
+    ).order_by("order", "price")
+
     if request.method == "POST":
         form = PaymentForm(request.POST, request.FILES, business=business)
 
         if form.is_valid():
             payment = form.save(commit=False)
             payment.business = business
-            payment.amount = PLAN_PRICES.get(payment.plan, 0)
             payment.method = PaymentMethod.CARD_TO_CARD
             payment.status = PaymentStatus.PENDING
+
+            # ─── قیمت از Plan میاد ───
+            payment.amount = payment.plan.price
+
             payment.save()
 
             logger.info(
-                f"Payment created: {business.name} — {payment.get_plan_display()} — {payment.amount:,} تومان"
+                f"Payment created: {business.name} — "
+                f"{payment.plan.name} — {payment.amount:,} تومان"
             )
 
             messages.success(
@@ -88,7 +87,7 @@ def buy_plan(request: HttpRequest) -> HttpResponse:
     else:
         form = PaymentForm(business=business)
 
-    # ─── اطلاعات کارت از settings ───
+    # ─── اطلاعات کارت ───
     card_info = {
         "number": getattr(settings, "PAYMENT_CARD_NUMBER", "6037-XXXX-XXXX-XXXX"),
         "owner": getattr(settings, "PAYMENT_CARD_OWNER", "آرایشیار"),
@@ -98,9 +97,7 @@ def buy_plan(request: HttpRequest) -> HttpResponse:
     context = {
         "business": business,
         "form": form,
-        "plan_prices": PLAN_PRICES,
-        "plan_labels": PLAN_LABELS,
-        "plan_durations": PLAN_DURATION_DAYS,
+        "plans": paid_plans,
         "card_info": card_info,
     }
 
@@ -124,13 +121,11 @@ def cancel_payment(request: HttpRequest, payment_id: int) -> HttpResponse:
         status=PaymentStatus.PENDING,
     )
 
-    # ─── حذف رسید ───
     if payment.receipt:
         payment.receipt.delete(save=False)
 
     payment.delete()
 
-    # ─── اگه HTMX، پاسخ خالی (آیتم از DOM حذف میشه) ───
     if request.headers.get("HX-Request"):
         return HttpResponse("")
 

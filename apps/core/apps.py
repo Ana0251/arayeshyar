@@ -16,6 +16,12 @@ class CoreConfig(AppConfig):
         - Admin branding
         - Admin site patch (مخفی‌کردن اپ‌های خالی)
         """
+        # ─── HEIF/HEIC support ───
+        try:
+            from pillow_heif import register_heif_opener
+            register_heif_opener()
+        except ImportError:
+            pass
         # ═══════════════════════════════════════════════════════════
         #  Override DateInput / TimeInput
         # ═══════════════════════════════════════════════════════════

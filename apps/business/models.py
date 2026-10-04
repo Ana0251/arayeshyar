@@ -4,15 +4,17 @@
 شامل:
 1.  TargetAudience       — مخاطب (آقایان/بانوان/هردو/کودکان)
 2.  ActivityType         — نوع فعالیت (آرایشگر، سالن، ناخن‌کار، ...)
-3.  Business             — کسب‌وکار
-4.  Staff                — کارمند (جدید)
-5.  Station              — ایستگاه (اتاق)
-6.  Service              — خدمت
-7.  WorkingHours         — برنامه هفتگی
-8.  DayOff               — روز تعطیل
-9.  SpecialWorkingHours  — ساعت خاص
-10. Break                — وقفه استراحت
-11. ProfileChangeRequest — درخواست تغییر حساس
+3.  Plan                 — پلن اشتراک (قابل مدیریت از ادمین)
+4.  Business             — کسب‌وکار
+5.  Staff                — کارمند
+6.  Station              — ایستگاه (اتاق)
+7.  Service              — خدمت
+8.  WorkingHours         — برنامه هفتگی
+9.  DayOff               — روز تعطیل
+10. SpecialWorkingHours  — ساعت خاص
+11. Break                — وقفه استراحت
+12. ProfileChangeRequest — درخواست تغییر حساس
+13. Payment              — پرداخت
 """
 
 from datetime import timedelta
@@ -31,11 +33,9 @@ from apps.core.models import TimeStampedModel
 
 from .constants import (
     UPLOAD_PATHS,
-    PLAN_DURATION_DAYS,
     ChangeRequestStatus,
     PaymentMethod,
     PaymentStatus,
-    Plan,
     ProfileField,
     Weekday,
 )
@@ -99,7 +99,95 @@ class ActivityType(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۳. Business
+#  ۳. Plan (پلن اشتراک)
+# ═══════════════════════════════════════════════════════════════
+
+
+class Plan(TimeStampedModel):
+    """
+    پلن اشتراک (قابل مدیریت از ادمین).
+
+    ─── چرا مدل؟ ───
+    ادمین بتونه:
+    - پلن جدید بسازه
+    - قیمت‌ها رو عوض کنه
+    - ویژگی‌ها رو کم/زیاد کنه
+    - ترتیب نمایش رو تنظیم کنه
+    """
+
+    slug = models.SlugField(
+        _("شناسه"),
+        max_length=50,
+        unique=True,
+        help_text=_("مثلاً: trial, basic, pro"),
+    )
+    name = models.CharField(
+        _("نام"),
+        max_length=50,
+        help_text=_("مثلاً: پلن پایه"),
+    )
+    icon = models.CharField(
+        _("آیکون"),
+        max_length=10,
+        blank=True,
+        default="⭐",
+        help_text=_("مثلاً: 🎁 ⭐ 💎"),
+    )
+    description = models.TextField(
+        _("توضیحات"),
+        blank=True,
+        max_length=500,
+    )
+    price = models.PositiveIntegerField(
+        _("قیمت (تومان)"),
+        default=0,
+    )
+    duration_days = models.PositiveIntegerField(
+        _("مدت (روز)"),
+        default=30,
+    )
+    features = models.JSONField(
+        _("ویژگی‌ها"),
+        default=list,
+        blank=True,
+        help_text=_('لیست ویژگی‌ها — مثال: ["نوبت‌دهی آنلاین", "QR Code"]'),
+    )
+    order = models.PositiveIntegerField(
+        _("ترتیب نمایش"),
+        default=0,
+    )
+    is_active = models.BooleanField(
+        _("فعال"),
+        default=True,
+        help_text=_("اگه غیرفعال باشه، توی لیست خرید نشون داده نمیشه."),
+    )
+    is_paid = models.BooleanField(
+        _("پولی"),
+        default=True,
+        help_text=_("پلن‌های رایگان (مثل trial) این فیلد رو False می‌کنن."),
+    )
+    has_pro_features = models.BooleanField(
+        _("ویژگی‌های ویژه"),
+        default=False,
+        help_text=_("اگه True، امکانات pro (یادآور، لیست انتظار، ...) فعالن."),
+    )
+
+    class Meta:
+        verbose_name = _("پلن")
+        verbose_name_plural = _("پلن‌ها")
+        ordering = ["order", "price"]
+
+    def __str__(self) -> str:
+        return f"{self.icon} {self.name}"
+
+    @property
+    def features_count(self) -> int:
+        """تعداد ویژگی‌ها."""
+        return len(self.features) if isinstance(self.features, list) else 0
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ۴. Business
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -174,11 +262,11 @@ class Business(TimeStampedModel):
     rejection_reason = models.TextField(_("دلیل رد"), blank=True)
 
     # ─── پلن ───
-    plan = models.CharField(
-        _("پلن فعلی"),
-        max_length=10,
-        choices=Plan.choices,
-        default=Plan.TRIAL,
+    plan = models.ForeignKey(
+        Plan,
+        on_delete=models.PROTECT,
+        related_name="businesses",
+        verbose_name=_("پلن فعلی"),
     )
     plan_expires_at = models.DateField(_("تاریخ انقضای پلن"), null=True, blank=True)
 
@@ -238,10 +326,17 @@ class Business(TimeStampedModel):
 
     @property
     def has_pro_features(self) -> bool:
-        return self.plan == Plan.PRO and self.is_plan_active
+        return self.plan.has_pro_features and self.is_plan_active
 
     @property
     def is_plan_active(self) -> bool:
+        """
+        آیا پلن فعلی معتبره؟
+
+        ─── منطق: ───
+        اگه plan_expires_at داره: تاریخ رو چک کن.
+        اگه نداره: False (چون هر پلنی باید تاریخ داشته باشه).
+        """
         if not self.plan_expires_at:
             return False
         return self.plan_expires_at >= timezone.localdate()
@@ -281,7 +376,7 @@ class Business(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۴. Staff (جدید)
+#  ۵. Staff
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -321,7 +416,6 @@ class Staff(TimeStampedModel):
         verbose_name_plural = _("کارمندها")
         ordering = ["order", "id"]
         constraints = [
-            # هر کسب‌وکار فقط یه owner
             models.UniqueConstraint(
                 fields=["business"],
                 condition=models.Q(is_owner=True),
@@ -335,7 +429,7 @@ class Staff(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۵. Station (آپدیت)
+#  ۶. Station
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -381,7 +475,7 @@ class Station(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۶. Service (آپدیت)
+#  ۷. Service
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -403,7 +497,7 @@ class Service(TimeStampedModel):
     )
     station = models.ForeignKey(
         Station,
-        on_delete=models.PROTECT,   # ← اگه خدمت داره، اتاق حذف نشه
+        on_delete=models.PROTECT,
         related_name="services",
         verbose_name=_("ایستگاه"),
     )
@@ -449,7 +543,7 @@ class Service(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۷. WorkingHours
+#  ۸. WorkingHours
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -480,13 +574,11 @@ class WorkingHours(TimeStampedModel):
         verbose_name_plural = _("برنامه‌های هفتگی")
         ordering = ["weekday"]
         constraints = [
-            # ─── برای station مشخص: هر (business, station, weekday) یه بار ───
             models.UniqueConstraint(
                 fields=["business", "station", "weekday"],
                 condition=models.Q(station__isnull=False),
                 name="unique_working_hours_with_station",
             ),
-            # ─── برای station=NULL: هر (business, weekday) یه بار ───
             models.UniqueConstraint(
                 fields=["business", "weekday"],
                 condition=models.Q(station__isnull=True),
@@ -506,7 +598,7 @@ class WorkingHours(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۸. DayOff
+#  ۹. DayOff
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -553,7 +645,7 @@ class DayOff(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۹. SpecialWorkingHours
+#  ۱۰. SpecialWorkingHours
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -608,7 +700,7 @@ class SpecialWorkingHours(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۱۰. Break
+#  ۱۱. Break
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -651,7 +743,7 @@ class Break(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۱۱. ProfileChangeRequest
+#  ۱۲. ProfileChangeRequest
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -762,10 +854,18 @@ class ProfileChangeRequest(TimeStampedModel):
         self.rejection_reason = reason
         self.reviewed_at = timezone.now()
         self.reviewed_by = reviewed_by
-        self.save(update_fields=["status", "rejection_reason", "reviewed_at", "reviewed_by"])
-        
+        self.save(
+            update_fields=[
+                "status",
+                "rejection_reason",
+                "reviewed_at",
+                "reviewed_by",
+            ]
+        )
+
+
 # ═══════════════════════════════════════════════════════════════
-#  ۱۲. Payment (پرداخت)
+#  ۱۳. Payment
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -787,10 +887,11 @@ class Payment(TimeStampedModel):
         related_name="payments",
         verbose_name=_("کسب‌وکار"),
     )
-    plan = models.CharField(
-        _("پلن"),
-        max_length=10,
-        choices=Plan.choices,
+    plan = models.ForeignKey(
+        Plan,
+        on_delete=models.PROTECT,
+        related_name="payments",
+        verbose_name=_("پلن"),
     )
     amount = models.PositiveIntegerField(
         _("مبلغ (تومان)"),
@@ -861,7 +962,8 @@ class Payment(TimeStampedModel):
         ]
 
     def __str__(self) -> str:
-        return f"{self.business.name} — {self.get_plan_display()} — {self.amount:,} تومان"
+        plan_name = self.plan.name if self.plan else "—"
+        return f"{self.business.name} — {plan_name} — {self.amount:,} تومان"
 
     @property
     def is_pending(self) -> bool:
@@ -879,15 +981,16 @@ class Payment(TimeStampedModel):
         1. اگه پلن فعلی هنوز معتبره → اضافه کن به تاریخ انقضا
         2. وگرنه → از امروز شروع کن
         """
-        from datetime import timedelta
-
         business = self.business
+        today = timezone.localdate()
+        duration = self.plan.duration_days
 
         # ─── محاسبه‌ی تاریخ انقضای جدید ───
-        today = timezone.localdate()
-        duration = PLAN_DURATION_DAYS.get(self.plan, 30)
-
-        if business.plan == self.plan and business.plan_expires_at and business.plan_expires_at >= today:
+        if (
+            business.plan_id == self.plan_id
+            and business.plan_expires_at
+            and business.plan_expires_at >= today
+        ):
             # ─── تمدید: از تاریخ انقضای فعلی ───
             new_expiry = business.plan_expires_at + timedelta(days=duration)
         else:
@@ -905,7 +1008,14 @@ class Payment(TimeStampedModel):
         self.reviewed_by = reviewed_by
         if note:
             self.admin_note = note
-        self.save(update_fields=["status", "reviewed_at", "reviewed_by", "admin_note"])
+        self.save(
+            update_fields=[
+                "status",
+                "reviewed_at",
+                "reviewed_by",
+                "admin_note",
+            ]
+        )
 
     def reject(self, reason: str, reviewed_by: User | None = None) -> None:
         """رد پرداخت."""
@@ -913,4 +1023,11 @@ class Payment(TimeStampedModel):
         self.admin_note = reason
         self.reviewed_at = timezone.now()
         self.reviewed_by = reviewed_by
-        self.save(update_fields=["status", "admin_note", "reviewed_at", "reviewed_by", "updated_at"])
+        self.save(
+            update_fields=[
+                "status",
+                "admin_note",
+                "reviewed_at",
+                "reviewed_by",
+            ]
+        )

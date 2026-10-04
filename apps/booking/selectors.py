@@ -73,15 +73,83 @@ def get_customer_appointments(
 
 def get_upcoming_appointments_for_business(
     business: Business,
-    limit: int = 20,
-) -> QuerySet[Appointment]:
-    """نوبت‌های آینده‌ی یه کسب‌وکار."""
-    return (
+    days_ahead: int = 7,
+    *,
+    from_date=None,
+) -> list[dict]:
+    """
+    نوبت‌های آینده‌ی یه کسب‌وکار، گروه‌بندی‌شده بر اساس روز.
+
+    ─── نکته: ───
+    از **فردا** شروع می‌کنه (نه امروز — چون امروز جدا نشون داده میشه).
+    حداکثر تا `days_ahead` روز آینده.
+
+    Returns:
+        لیست دیکشنری:
+        [
+            {
+                "date": date(2026, 10, 5),
+                "jalali_date": "1405/07/14",
+                "weekday_name": "شنبه",
+                "appointments": QuerySet[Appointment],
+                "count": 5,
+            },
+            ...
+        ]
+    """
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    if from_date is None:
+        from_date = timezone.localdate() + timedelta(days=1)
+
+    end_date = from_date + timedelta(days=days_ahead - 1)
+
+    # ─── همه‌ی نوبت‌های آینده توی بازه ───
+    appointments = (
         Appointment.objects.for_business(business)
-        .upcoming()
+        .filter(
+            start_at__date__gte=from_date,
+            start_at__date__lte=end_date,
+        )
+        .exclude(status=AppointmentStatus.CANCELLED)
         .with_relations()
-        .order_by("start_at")[:limit]
+        .order_by("start_at")
     )
+
+    # ─── گروه‌بندی بر اساس تاریخ ───
+    groups: dict = {}
+    for appt in appointments:
+        d = timezone.localtime(appt.start_at).date()
+        if d not in groups:
+            groups[d] = []
+        groups[d].append(appt)
+
+    # ─── ساخت لیست نهایی ───
+    import jdatetime
+
+    result = []
+    for d in sorted(groups.keys()):
+        jdate = jdatetime.date.fromgregorian(date=d)
+        # ─── نام روز هفته (شنبه تا جمعه) ───
+        # python weekday: Mon=0..Sun=6
+        # iranian weekday: Sat=0..Fri=6
+        iranian_weekday = (d.weekday() + 2) % 7
+        weekday_names = [
+            "شنبه", "یکشنبه", "دوشنبه", "سه‌شنبه",
+            "چهارشنبه", "پنجشنبه", "جمعه",
+        ]
+        result.append({
+            "date": d,
+            "jalali_date": jdate.strftime("%Y/%m/%d"),
+            "jalali_short": jdate.strftime("%d %B"),
+            "weekday_name": weekday_names[iranian_weekday],
+            "appointments": groups[d],
+            "count": len(groups[d]),
+        })
+
+    return result
 
 
 def get_overlapping_appointments(
