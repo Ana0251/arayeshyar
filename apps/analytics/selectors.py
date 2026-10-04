@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from typing import TYPE_CHECKING
 
 from django.db import connection
-from django.db.models import Avg, Count, Q, QuerySet, Sum
+from django.db.models import Avg, Count, Max, Q, QuerySet, Sum
 from django.utils import timezone
 
 from apps.accounts.models import User
@@ -16,6 +16,7 @@ from apps.booking.constants import AppointmentStatus
 from apps.booking.models import Appointment
 from apps.business.constants import Weekday
 from apps.business.models import Business, Service
+
 
 from .constants import (
     DEFAULT_ANALYTICS_DAYS,

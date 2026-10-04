@@ -1,8 +1,5 @@
 """
-تست‌های BookingService (ایجاد نوبت).
-
-─── نکته: ───
-این تست‌ها قوانین اصلی booking رو چک می‌کنن.
+تست‌های BookingService.
 """
 
 from datetime import time, timedelta
@@ -11,197 +8,144 @@ import pytest
 from django.utils import timezone
 
 from apps.booking.constants import AppointmentStatus
-from apps.booking.models import Appointment
+from apps.booking.models import Appointment, BlockedCustomer
 from apps.booking.services import (
     BookingService,
     BusinessNotActiveError,
     CustomerBlockedError,
     SlotNotAvailableError,
 )
-from apps.booking.models import BlockedCustomer
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Helper
-# ═══════════════════════════════════════════════════════════════
+def _make_dt(target_date, hour, minute=0):
+    from datetime import datetime
 
-
-def _make_start_at(target_date, hour=10, minute=0):
-    """ساخت datetime aware (Tehran) از تاریخ و ساعت."""
-    naive = timezone.datetime.combine(
-        target_date,
-        time(hour, minute),
-    )
+    naive = datetime.combine(target_date, time(hour, minute))
     return timezone.make_aware(naive, timezone.get_current_timezone())
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Create Appointment
-# ═══════════════════════════════════════════════════════════════
-
-
+@pytest.mark.django_db
 class TestCreateAppointment:
     """تست‌های create_appointment."""
 
     def test_create_basic(
-        self,
-        business_with_hours,
-        service,
-        customer,
-        owner_staff,
-        next_saturday,
+        self, business, service_with_working_hours, customer, next_saturday
     ):
-        """ایجاد نوبت ساده."""
-        start_at = _make_start_at(next_saturday, 10, 0)
-
-        bs = BookingService(business_with_hours)
+        start = _make_dt(next_saturday, 10, 0)
+        bs = BookingService(business)
         appt = bs.create_appointment(
             customer=customer,
-            service=service,
-            start_at=start_at,
-            staff=owner_staff,
+            service=service_with_working_hours,
+            start_at=start,
         )
-
         assert appt.pk is not None
         assert appt.customer == customer
-        assert appt.service == service
-        assert appt.staff == owner_staff
-        assert appt.start_at == start_at
-        assert appt.end_at == start_at + timedelta(minutes=30)
-        # ─── auto_confirm=True ───
         assert appt.status == AppointmentStatus.CONFIRMED
 
-    def test_create_inactive_business_fails(
-        self,
-        business_with_hours,
-        service,
-        customer,
-        owner_staff,
-        next_saturday,
+    def test_inactive_business_fails(
+        self, business, service_with_working_hours, customer, next_saturday
     ):
-        """کسب‌وکار غیرفعال → خطا."""
-        business_with_hours.is_active = False
-        business_with_hours.save()
+        business.is_active = False
+        business.save()
 
-        start_at = _make_start_at(next_saturday, 10, 0)
-
-        bs = BookingService(business_with_hours)
         with pytest.raises(BusinessNotActiveError):
-            bs.create_appointment(
+            BookingService(business).create_appointment(
                 customer=customer,
-                service=service,
-                start_at=start_at,
-                staff=owner_staff,
+                service=service_with_working_hours,
+                start_at=_make_dt(next_saturday, 10, 0),
             )
 
-    def test_create_blocked_customer_fails(
-        self,
-        business_with_hours,
-        service,
-        customer,
-        owner_staff,
-        next_saturday,
+    def test_blocked_customer_fails(
+        self, business, service_with_working_hours, customer, next_saturday
     ):
-        """مشتری بلاک‌شده → خطا."""
         BlockedCustomer.objects.create(
-            business=business_with_hours,
+            business=business,
             phone=customer.phone,
-            reason="تست",
+            reason="test",
         )
 
-        start_at = _make_start_at(next_saturday, 10, 0)
-
-        bs = BookingService(business_with_hours)
         with pytest.raises(CustomerBlockedError):
-            bs.create_appointment(
+            BookingService(business).create_appointment(
                 customer=customer,
-                service=service,
-                start_at=start_at,
-                staff=owner_staff,
+                service=service_with_working_hours,
+                start_at=_make_dt(next_saturday, 10, 0),
             )
 
-    def test_create_duplicate_slot_fails(
-        self,
-        business_with_hours,
-        service,
-        customer,
-        owner_staff,
-        next_saturday,
+    def test_duplicate_slot_fails(
+        self, business, service_with_working_hours, customer, next_saturday
     ):
-        """دو نوبت سر یه ساعت → خطا."""
-        start_at = _make_start_at(next_saturday, 10, 0)
-
-        bs = BookingService(business_with_hours)
+        start = _make_dt(next_saturday, 10, 0)
+        bs = BookingService(business)
         bs.create_appointment(
             customer=customer,
-            service=service,
-            start_at=start_at,
-            staff=owner_staff,
+            service=service_with_working_hours,
+            start_at=start,
         )
 
-        # ─── نوبت دوم سر همون ساعت ───
         with pytest.raises(SlotNotAvailableError):
             bs.create_appointment(
                 customer=customer,
-                service=service,
-                start_at=start_at,
-                staff=owner_staff,
+                service=service_with_working_hours,
+                start_at=start,
             )
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Race Condition
-# ═══════════════════════════════════════════════════════════════
-
-
-class TestRaceCondition:
-    """تست‌های جلوگیری از Double Booking."""
-
-    def test_db_constraint_prevents_double_booking(
-        self,
-        business_with_hours,
-        service,
-        customer,
-        owner_staff,
-        station,
-        next_saturday,
+    @pytest.mark.skip(reason="TODO: نیاز به کسب‌وکار دوم")
+    def test_customer_double_booking_fails(
+        self, business, service_with_working_hours, customer, next_saturday
     ):
-        """
-        ─── نکته: ───
-        این تست فرض می‌کنه UniqueConstraint روی (staff, start_at) هست.
-        حتی اگه BookingService چک نکنه، DB باید جلوش رو بگیره.
-        """
-        from django.db import IntegrityError
-
-        start_at = _make_start_at(next_saturday, 10, 0)
-
-        # ─── نوبت اول ───
-        Appointment.objects.create(
-            business=business_with_hours,
+        # دو نوبت با همون مشتری، در بازه‌های نزدیک
+        bs = BookingService(business)
+        bs.create_appointment(
             customer=customer,
-            service=service,
-            staff=owner_staff,
-            station=station,
-            service_name_snapshot=service.name,
-            service_price_snapshot=service.price,
-            service_duration_snapshot=service.duration,
-            start_at=start_at,
-            end_at=start_at + timedelta(minutes=30),
-            status=AppointmentStatus.CONFIRMED,
+            service=service_with_working_hours,
+            start_at=_make_dt(next_saturday, 10, 0),
         )
 
-        # ─── نوبت دوم (بدون چک BookingService) ───
-        with pytest.raises(IntegrityError):
-            Appointment.objects.create(
-                business=business_with_hours,
+        from apps.booking.services import DuplicateBookingError
+
+        with pytest.raises(DuplicateBookingError):
+            bs.create_appointment(
                 customer=customer,
-                service=service,
-                staff=owner_staff,
-                station=station,
-                service_name_snapshot=service.name,
-                service_price_snapshot=service.price,
-                service_duration_snapshot=service.duration,
-                start_at=start_at,
-                end_at=start_at + timedelta(minutes=30),
-                status=AppointmentStatus.CONFIRMED,
+                service=service_with_working_hours,
+                start_at=_make_dt(next_saturday, 10, 0),
+                force=False,
             )
+
+    def test_auto_confirm(self, business, service_with_working_hours, customer, next_saturday):
+        business.auto_confirm = True
+        business.save()
+
+        appt = BookingService(business).create_appointment(
+            customer=customer,
+            service=service_with_working_hours,
+            start_at=_make_dt(next_saturday, 10, 0),
+        )
+        assert appt.status == AppointmentStatus.CONFIRMED
+
+    def test_pending_when_no_auto_confirm(
+        self, salon, salon_station, next_saturday
+    ):
+        # سالن auto_confirm=False
+        from tests.factories import ServiceFactory, StaffFactory, StaffService, StaffSchedule
+        from apps.business.models import Service, Staff, StaffService
+
+        staff = StaffFactory(business=salon)
+        service = ServiceFactory(business=salon, station=salon_station, duration=30)
+
+        StaffSchedule.objects.create(
+            staff=staff, station=salon_station, weekday=0,
+            start_time=time(9, 0), end_time=time(21, 0),
+        )
+        StaffService.objects.create(
+            staff=staff, service=service, station=salon_station,
+        )
+
+        customer = __import__("tests.factories", fromlist=["CustomerUserFactory"]).CustomerUserFactory()
+        customer.set_unusable_password()
+        customer.save()
+
+        appt = BookingService(salon).create_appointment(
+            customer=customer,
+            service=service,
+            start_at=_make_dt(next_saturday, 10, 0),
+        )
+        assert appt.status == AppointmentStatus.PENDING

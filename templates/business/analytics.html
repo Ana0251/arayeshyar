@@ -10,7 +10,7 @@
         ← بازگشت به داشبورد
     </a>
 
-    {# ─── Header ─── #}
+    {# Header #}
     <div class="bg-primary text-white rounded-2xl shadow-md p-5 mb-5">
         <div class="flex items-center gap-4 flex-wrap">
             <div class="w-14 h-14 rounded-full bg-accent text-primary flex items-center justify-center text-3xl shrink-0">
@@ -25,7 +25,7 @@
         </div>
     </div>
 
-    {# ─── فیلتر بازه ─── #}
+    {# فیلتر بازه #}
     <div class="bg-white rounded-2xl shadow-sm p-4 mb-5">
         <div class="flex items-center gap-2 flex-wrap">
             <span class="text-xs font-bold text-darktext/60 ml-2">بازه:</span>
@@ -40,7 +40,7 @@
         </div>
     </div>
 
-    {# ═══════════════ کارت‌های آمار کلی ═══════════════ #}
+    {# کارت‌های آمار کلی #}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         <div class="bg-white rounded-xl shadow-sm p-4 text-center border-r-4 border-primary">
             <div class="text-2xl font-bold text-primary">{{ overall.total_appointments }}</div>
@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    {# ─── کارت‌های درآمد ─── #}
+    {# کارت‌های درآمد #}
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
         <div class="bg-gradient-to-l from-accent/20 to-accent/5 rounded-2xl shadow-sm p-5">
             <div class="text-xs text-darktext/60 font-bold mb-1">💰 درآمد تخمینی</div>
@@ -84,7 +84,7 @@
         </div>
     </div>
 
-    {# ═══════════════ ساعات طلایی ═══════════════ #}
+    {# ساعات طلایی #}
     {% if golden_hours %}
         <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
             <div class="bg-cream px-5 py-3 border-b border-black/5">
@@ -101,10 +101,8 @@
                             {{ item.label }}
                         </div>
                         <div class="flex-1 bg-cream/50 rounded-full h-6 overflow-hidden relative">
-                            <div class="h-full rounded-full
-                                        {% if item.is_golden %}bg-accent{% else %}bg-primary/40{% endif %}"
-                                 style="width: {{ item.percentage }}%">
-                            </div>
+                            <div class="h-full rounded-full {% if item.is_golden %}bg-accent{% else %}bg-primary/40{% endif %}"
+                                 style="width: {{ item.percentage }}%;"></div>
                             <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
                                 {{ item.count }} نوبت
                                 {% if item.is_golden %} ⭐{% endif %}
@@ -116,7 +114,7 @@
         </div>
     {% endif %}
 
-    {# ═══════════════ روزهای طلایی ═══════════════ #}
+    {# روزهای طلایی #}
     {% if golden_weekdays %}
         <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
             <div class="bg-cream px-5 py-3 border-b border-black/5">
@@ -133,10 +131,8 @@
                             {{ item.name }}
                         </div>
                         <div class="flex-1 bg-cream/50 rounded-full h-6 overflow-hidden relative">
-                            <div class="h-full rounded-full
-                                        {% if item.is_golden %}bg-accent{% else %}bg-primary/40{% endif %}"
-                                 style="width: {{ item.percentage }}%">
-                            </div>
+                            <div class="h-full rounded-full {% if item.is_golden %}bg-accent{% else %}bg-primary/40{% endif %}"
+                                 style="width: {{ item.percentage }}%;"></div>
                             <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
                                 {{ item.count }} نوبت
                                 {% if item.is_golden %} ⭐{% endif %}
@@ -148,7 +144,7 @@
         </div>
     {% endif %}
 
-    {# ═══════════════ خدمات برتر ═══════════════ #}
+    {# خدمات برتر #}
     {% if service_stats %}
         <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
             <div class="bg-cream px-5 py-3 border-b border-black/5">
@@ -173,7 +169,7 @@
         </div>
     {% endif %}
 
-    {# ═══════════════ مشتریان برتر ═══════════════ #}
+    {# مشتریان برتر #}
     {% if top_customers %}
         <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
             <div class="bg-cream px-5 py-3 border-b border-black/5">
@@ -201,7 +197,7 @@
         </div>
     {% endif %}
 
-    {# ─── Empty State ─── #}
+    {# Empty State #}
     {% if not overall.total_appointments %}
         <div class="bg-white rounded-2xl shadow-md p-10 text-center">
             <div class="text-4xl mb-3">📊</div>

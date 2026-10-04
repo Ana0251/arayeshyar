@@ -16,7 +16,7 @@
 - سالن: ساعت کاری از StaffSchedule (شیفت کارمندها)
 - شخصی: ساعت کاری از WorkingHours (برنامه هفتگی معمولی)
 """
-
+from __future__ import annotations
 from datetime import date, datetime, time, timedelta
 from datetime import timezone as dt_timezone
 from typing import TYPE_CHECKING
@@ -34,6 +34,7 @@ from apps.business.models import (
     Station,
     WorkingHours,
 )
+
 
 from ..constants import DEFAULT_SLOT_DURATION, SlotStatus
 
