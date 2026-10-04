@@ -17,10 +17,17 @@ from .register import (
     register_stations,
     register_start,
 )
+
+from .staff_schedules import (
+    delete_staff_schedule,
+    edit_staff_schedule,
+    manage_staff_schedules,
+)
 from .payment import buy_plan, cancel_payment, my_plan
 from .services import delete_service, edit_service, manage_services
 from .special_hours import delete_special_hours, manage_special_hours
 from .stations import delete_station, edit_station, manage_stations
+from .analytics import analytics
 
 __all__ = [
     # Public
@@ -67,4 +74,10 @@ __all__ = [
     "my_plan",
     "buy_plan",
     "cancel_payment",
+    
+    "analytics",
+    
+    "manage_staff_schedules",
+    "edit_staff_schedule", 
+    "delete_staff_schedule",
 ]

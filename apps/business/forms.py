@@ -19,6 +19,9 @@ from .models import (
     Plan,
     ProfileChangeRequest,
     Service,
+    Staff,
+    StaffSchedule,
+    StaffService,
     SpecialWorkingHours,
     Station,
     TargetAudience,
@@ -504,20 +507,17 @@ class RegisterBusinessInfoForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, business=None, **kwargs):
+    def __init__(self, *args, is_salon: bool = False, **kwargs):
+        """
+        ─── پارامتر is_salon: ───
+        اگه سالن نباشه، فیلدهای پروانه کسب و عکس ورودی اختیاری میشن.
+        """
         super().__init__(*args, **kwargs)
-        self.business = business
+        self.is_salon = is_salon
 
-        # ─── فقط پلن‌های پولی ───
-        self.fields["plan"].queryset = Plan.objects.filter(
-            is_active=True,
-            is_paid=True,
-        ).order_by("order", "price")
-
-        # ─── label فارسی ───
-        self.fields["plan"].label_from_instance = lambda p: (
-            f"{p.icon} {p.name} — {p.price:,} تومان"
-        )
+        if not is_salon:
+            self.fields["business_license"].required = False
+            self.fields["entrance_photo"].required = False
             
 # ═══════════════════════════════════════════════════════════════
 #  PaymentForm
@@ -580,3 +580,83 @@ class PaymentForm(forms.ModelForm):
         if not receipt:
             raise forms.ValidationError(_("آپلود رسید الزامیه."))
         return receipt
+    
+    
+class StaffScheduleForm(forms.ModelForm):
+    """فرم افزودن/ویرایش شیفت کارمند."""
+
+    class Meta:
+        model = StaffSchedule
+        fields = ["staff", "weekday", "start_time", "end_time", "is_active"]
+        widgets = {
+            "staff": forms.Select(attrs={"class": SELECT_CLASS}),
+            "weekday": forms.Select(attrs={"class": SELECT_CLASS}),
+            "start_time": JalaliTimeInput(),
+            "end_time": JalaliTimeInput(),
+            "is_active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
+        }
+
+    def __init__(self, *args, business=None, station=None, **kwargs):
+        """
+        ─── نکته: ───
+        - business: برای فیلتر کارمندها
+        - station: برای ست کردن توی save
+        """
+        super().__init__(*args, **kwargs)
+        self.business = business
+        self.station = station
+
+        if business:
+            self.fields["staff"].queryset = Staff.objects.filter(
+                business=business,
+                is_active=True,
+            ).order_by("order", "name")
+
+    def clean(self) -> dict:
+        """اعتبارسنجی."""
+        cleaned = super().clean()
+        start = cleaned.get("start_time")
+        end = cleaned.get("end_time")
+
+        if start and end and start >= end:
+            raise forms.ValidationError(
+                _("ساعت پایان باید بعد از ساعت شروع باشه.")
+            )
+
+        return cleaned
+    
+# ═══════════════════════════════════════════════════════════════
+#  StaffService Form
+# ═══════════════════════════════════════════════════════════════
+
+
+class StaffServiceForm(forms.ModelForm):
+    """فرم افزودن/ویرایش خدمت کارمند."""
+
+    class Meta:
+        model = StaffService
+        fields = ["staff", "price", "is_active"]
+        widgets = {
+            "staff": forms.Select(attrs={"class": SELECT_CLASS}),
+            "price": forms.NumberInput(
+                attrs={
+                    "class": INPUT_CLASS,
+                    "min": 0,
+                    "step": 10000,
+                    "placeholder": "۰ = قیمت پیش‌فرض خدمت",
+                }
+            ),
+            "is_active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
+        }
+
+    def __init__(self, *args, business=None, station=None, service=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.business = business
+        self.station = station
+        self.service = service
+
+        if business:
+            self.fields["staff"].queryset = Staff.objects.filter(
+                business=business,
+                is_active=True,
+            ).order_by("order", "name")

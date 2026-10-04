@@ -65,80 +65,77 @@
     </div>
 
     {# ═══════════════ کارت پلن ═══════════════ #}
-    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+    {% if business.plan %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="p-5 flex items-center gap-4
+                        {% if not business.is_plan_active %}bg-danger/5
+                        {% elif business.plan.has_pro_features %}bg-gradient-to-l from-accent/20 to-accent/5
+                        {% elif business.plan.is_paid %}bg-primary/5
+                        {% else %}bg-warning/5{% endif %}">
 
-        <div class="p-5 flex items-center gap-4
-                    {% if not business.is_plan_active %}bg-danger/5
-                    {% elif business.plan.has_pro_features %}bg-gradient-to-l from-accent/20 to-accent/5
-                    {% elif business.plan.is_paid %}bg-primary/5
-                    {% else %}bg-warning/5{% endif %}">
+                <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0
+                            {% if business.plan.has_pro_features %}bg-accent/20
+                            {% elif business.plan.is_paid %}bg-primary/10
+                            {% else %}bg-warning/20{% endif %}">
+                    {{ business.plan.icon }}
+                </div>
 
-            <div class="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0
-                        {% if business.plan.has_pro_features %}bg-accent/20
-                        {% elif business.plan.is_paid %}bg-primary/10
-                        {% else %}bg-warning/20{% endif %}">
-                {% if business.plan.has_pro_features %}💎
-                {% elif business.plan.is_paid %}⭐
-                {% else %}🎁{% endif %}
-            </div>
-
-            <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="font-bold text-lg text-primary">
-                        {% if business.plan.has_pro_features %}پلن ویژه
-                        {% elif business.plan.is_paid %}پلن پایه
-                        {% else %}دوره تست{% endif %}
-                    </span>
-
-                    {% if not business.is_plan_active %}
-                        <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">
-                            ❌ منقضی شده
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-bold text-lg text-primary">
+                            {{ business.plan.name }}
                         </span>
-                    {% elif business.plan_days_left is not None and business.plan_days_left <= 7 %}
-                        <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">
-                            ⚠️ {{ business.plan_days_left }} روز مونده
-                        </span>
-                    {% else %}
-                        <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">
-                            ✅ فعال
-                        </span>
+
+                        {% if not business.is_plan_active %}
+                            <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">
+                                ❌ منقضی شده
+                            </span>
+                        {% elif business.plan_days_left is not None and business.plan_days_left <= 7 %}
+                            <span class="text-xs bg-warning/10 text-warning px-2 py-0.5 rounded-full font-bold">
+                                ⚠️ {{ business.plan_days_left }} روز مونده
+                            </span>
+                        {% else %}
+                            <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">
+                                ✅ فعال
+                            </span>
+                        {% endif %}
+                    </div>
+
+                    {% if business.plan_expires_at %}
+                        <div class="text-sm text-darktext/70 mt-1">
+                            📅 تاریخ انقضا: <strong>{{ business.plan_expires_at|to_jalali }}</strong>
+                            {% if business.plan_days_left is not None %}
+                                {% if business.plan_days_left > 0 %}
+                                    <span class="text-darktext/50">({{ business.plan_days_left }} روز مونده)</span>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     {% endif %}
                 </div>
 
-                {% if business.plan_expires_at %}
-                    <div class="text-sm text-darktext/70 mt-1">
-                        📅 تاریخ انقضا: <strong>{{ business.plan_expires_at|to_jalali }}</strong>
-                        {% if business.plan_days_left is not None %}
-                            {% if business.plan_days_left > 0 %}
-                                <span class="text-darktext/50">({{ business.plan_days_left }} روز مونده)</span>
-                            {% endif %}
-                        {% endif %}
-                    </div>
-                {% endif %}
+                <div class="shrink-0 flex flex-col sm:flex-row gap-2">
+                    <a href="{% url 'business:my_plan' %}"
+                       class="bg-white text-primary font-bold px-4 py-2 rounded-lg hover:bg-cream transition text-sm text-center border border-black/10">
+                        💎 مدیریت پلن
+                    </a>
+                    <a href="{% url 'business:buy_plan' %}"
+                       class="bg-accent text-primary font-bold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm text-center">
+                        🚀 ارتقا / تمدید
+                    </a>
+                </div>
             </div>
 
-            <div class="shrink-0 flex flex-col sm:flex-row gap-2">
-                <a href="{% url 'business:my_plan' %}"
-                   class="bg-white text-primary font-bold px-4 py-2 rounded-lg hover:bg-cream transition text-sm text-center border border-black/10">
-                    💎 مدیریت پلن
-                </a>
-                <a href="{% url 'business:buy_plan' %}"
-                   class="bg-accent text-primary font-bold px-4 py-2 rounded-lg hover:opacity-90 transition text-sm text-center">
-                    🚀 ارتقا / تمدید
-                </a>
-            </div>
+            {% if not business.is_plan_active %}
+                <div class="bg-danger/10 border-t border-danger/30 px-5 py-3 text-sm text-danger font-bold">
+                    ⚠️ پلنت منقضی شده! برای ادامه‌ی استفاده، یه پلن جدید بخر.
+                </div>
+            {% elif not business.plan.is_paid and business.plan_days_left is not None and business.plan_days_left <= 7 %}
+                <div class="bg-warning/10 border-t border-warning/30 px-5 py-3 text-sm text-warning font-bold">
+                    ⏰ فقط {{ business.plan_days_left }} روز از دوره تستت مونده! برای ادامه، پلن بخر.
+                </div>
+            {% endif %}
         </div>
-
-        {% if not business.is_plan_active %}
-            <div class="bg-danger/10 border-t border-danger/30 px-5 py-3 text-sm text-danger font-bold">
-                ⚠️ پلنت منقضی شده! برای ادامه‌ی استفاده، یه پلن جدید بخر.
-            </div>
-        {% elif not business.plan.is_paid and business.plan_days_left is not None and business.plan_days_left <= 7 %}
-            <div class="bg-warning/10 border-t border-warning/30 px-5 py-3 text-sm text-warning font-bold">
-                ⏰ فقط {{ business.plan_days_left }} روز از دوره تستت مونده! برای ادامه، پلن بخر.
-            </div>
-        {% endif %}
-    </div>
+    {% endif %}
 
     {# ═══════════════ کارت‌های آمار ═══════════════ #}
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
@@ -169,13 +166,19 @@
                 <div class="text-2xl mb-1">📍</div>
                 <div class="text-xs font-bold text-primary">ایستگاه‌ها</div>
             </a>
-        {% endif %}
 
-        <a href="{% url 'business:manage_hours' %}"
-           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
-            <div class="text-2xl mb-1">🗓️</div>
-            <div class="text-xs font-bold text-primary">برنامه هفتگی</div>
-        </a>
+            <a href="{% url 'business:manage_staff_schedules' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">⏰</div>
+                <div class="text-xs font-bold text-primary">شیفت کارمندها</div>
+            </a>
+        {% else %}
+            <a href="{% url 'business:manage_hours' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">🗓️</div>
+                <div class="text-xs font-bold text-primary">برنامه هفتگی</div>
+            </a>
+        {% endif %}
 
         <a href="{% url 'business:manage_days_off' %}"
            class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
@@ -225,6 +228,20 @@
             <div class="text-2xl mb-1">💎</div>
             <div class="text-xs font-bold text-primary">پلن من</div>
         </a>
+
+        {% if business.has_pro_features %}
+            <a href="{% url 'business:analytics' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">📊</div>
+                <div class="text-xs font-bold text-primary">آمار</div>
+            </a>
+        {% else %}
+            <div class="bg-white rounded-xl shadow-sm p-3 text-center opacity-50 cursor-not-allowed relative">
+                <div class="absolute top-1 left-1 text-sm">🔒</div>
+                <div class="text-2xl mb-1">📊</div>
+                <div class="text-xs font-bold text-darktext/60">آمار (pro)</div>
+            </div>
+        {% endif %}
     </div>
 
     {# ═══════════════ نوبت‌های امروز ═══════════════ #}
@@ -254,7 +271,7 @@
         {% endif %}
     </div>
 
-    {# ═══════════════ نوبت‌های آینده (گروه‌بندی‌شده تا ۷ روز) ═══════════════ #}
+    {# ═══════════════ نوبت‌های آینده (گروه‌بندی‌شده) ═══════════════ #}
     <div class="bg-white rounded-2xl shadow-md overflow-hidden">
         <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between">
             <h2 class="font-bold text-primary">🔮 نوبت‌های آینده (تا ۷ روز)</h2>
@@ -271,9 +288,7 @@
             {% if appointments_upcoming_groups %}
                 <div class="divide-y divide-black/5">
                     {% for group in appointments_upcoming_groups %}
-                        {# ─── هر روز: header + collapsible ─── #}
                         <div x-data="{ open: false }">
-                            {# ─── Header (قابل کلیک) ─── #}
                             <button type="button"
                                     @click="open = !open"
                                     class="w-full px-5 py-4 flex items-center justify-between gap-3
@@ -287,7 +302,7 @@
                                             {{ group.weekday_name }} — {{ group.jalali_short }}
                                         </div>
                                         <div class="text-xs text-darktext/60 mt-0.5">
-                                            {{ group.jalali_date }}
+                                            {{ group.jalali_date }} · {{ group.count }} نوبت
                                         </div>
                                     </div>
                                 </div>
@@ -297,7 +312,7 @@
                                         {{ group.count }}
                                     </span>
                                     <svg xmlns="http://www.w3.org/2000/svg"
-                                         class="w-5 h-5 text-darktext/60 transition-transform duration-200"
+                                         class="w-5 h-5 text-darktext/60 transition-transform"
                                          :class="open ? 'rotate-180' : ''"
                                          fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round"
@@ -306,14 +321,8 @@
                                 </div>
                             </button>
 
-                            {# ─── Collapsible content ─── #}
                             <div x-show="open"
-                                 x-transition:enter="transition ease-out duration-200"
-                                 x-transition:enter-start="opacity-0 -translate-y-2"
-                                 x-transition:enter-end="opacity-100 translate-y-0"
-                                 x-transition:leave="transition ease-in duration-150"
-                                 x-transition:leave-start="opacity-100 translate-y-0"
-                                 x-transition:leave-end="opacity-0 -translate-y-2"
+                                 x-collapse
                                  x-cloak
                                  class="bg-cream/30">
                                 <div class="divide-y divide-black/5">

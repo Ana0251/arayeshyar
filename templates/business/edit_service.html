@@ -16,13 +16,15 @@
         </p>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+    {# ═══════════════════ فرم ویرایش خدمت ═══════════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
         <div class="bg-primary text-white px-5 py-3">
-            <h2 class="font-bold">{{ service.name }}</h2>
+            <h2 class="font-bold">📝 اطلاعات خدمت</h2>
         </div>
 
         <form method="post" class="p-5 space-y-4">
             {% csrf_token %}
+            <input type="hidden" name="action" value="update">
 
             {% if form.non_field_errors %}
                 <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
@@ -43,7 +45,7 @@
                     {% if form.duration.errors %}<p class="text-danger text-xs mt-1">{{ form.duration.errors.0 }}</p>{% endif %}
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-darktext mb-1.5">قیمت (تومان) — اختیاری</label>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">قیمت پیش‌فرض (تومان)</label>
                     {{ form.price }}
                     {% if form.price.errors %}<p class="text-danger text-xs mt-1">{{ form.price.errors.0 }}</p>{% endif %}
                 </div>
@@ -56,7 +58,172 @@
 
             <button type="submit"
                     class="w-full bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">
-                💾 ذخیره تغییرات
+                💾 ذخیره تغییرات خدمت
+            </button>
+        </form>
+    </div>
+
+    {# ═══════════════════ کارمندهای این خدمت ═══════════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+        <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between">
+            <h2 class="font-bold text-primary">👥 کارمندهایی که این خدمت رو انجام می‌دن</h2>
+            <span class="text-xs text-darktext/60">{{ staff_services|length }} کارمند</span>
+        </div>
+
+        {% if staff_services %}
+            <div class="divide-y divide-black/5">
+                {% for ss in staff_services %}
+                    <div class="p-4" x-data="{ editing: false }">
+
+                        {# ─── حالت نمایش ─── #}
+                        <div x-show="!editing" class="flex items-center justify-between gap-3">
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <span class="font-bold text-primary">{{ ss.staff.name }}</span>
+                                    {% if not ss.is_active %}
+                                        <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">غیرفعال</span>
+                                    {% else %}
+                                        <span class="text-xs bg-success/10 text-success px-2 py-0.5 rounded-full font-bold">فعال</span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-xs text-darktext/60 mt-1">
+                                    💰 قیمت:
+                                    {% if ss.price > 0 %}
+                                        <strong>{{ ss.price|floatformat:0 }} تومان</strong>
+                                        <span class="text-darktext/40">(اختصاصی)</span>
+                                    {% else %}
+                                        <strong>{{ service.price|floatformat:0 }} تومان</strong>
+                                        <span class="text-darktext/40">(پیش‌فرض خدمت)</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+
+                            <div class="flex gap-1 shrink-0">
+                                {# ─── ویرایش ─── #}
+                                <button type="button"
+                                        @click="editing = true"
+                                        title="ویرایش"
+                                        class="w-9 h-9 rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition font-bold">
+                                    ✏️
+                                </button>
+
+                                {# ─── حذف ─── #}
+                                <form method="post" class="inline"
+                                      onsubmit="return confirm('مطمئنی می‌خوای {{ ss.staff.name }} رو از این خدمت حذف کنی؟')">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove_staff">
+                                    <input type="hidden" name="staff_service_id" value="{{ ss.id }}">
+                                    <button type="submit"
+                                            title="حذف"
+                                            class="w-9 h-9 rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition font-bold">
+                                        🗑️
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+
+                        {# ─── حالت ویرایش ─── #}
+                        <div x-show="editing"
+                             x-cloak
+                             x-transition
+                             class="bg-primary/5 border-2 border-primary/20 rounded-xl p-4">
+                            <form method="post" class="space-y-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="update_staff">
+                                <input type="hidden" name="staff_service_id" value="{{ ss.id }}">
+
+                                <div class="flex items-center gap-2 mb-2">
+                                    <span class="font-bold text-primary">{{ ss.staff.name }}</span>
+                                    <span class="text-xs text-darktext/60">— ویرایش قیمت</span>
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                                        قیمت اختصاصی (تومان)
+                                    </label>
+                                    <input type="number"
+                                           name="price"
+                                           value="{{ ss.price }}"
+                                           min="0"
+                                           step="10000"
+                                           placeholder="۰ = قیمت پیش‌فرض خدمت"
+                                           class="w-full px-4 py-3 rounded-xl border border-black/10 bg-white
+                                                  focus:border-accent focus:ring-2 focus:ring-accent/20
+                                                  outline-none transition">
+                                    <p class="text-xs text-darktext/50 mt-1">
+                                        اگه ۰ بذاری، از قیمت پیش‌فرض خدمت ({{ service.price|floatformat:0 }} تومان) استفاده میشه.
+                                    </p>
+                                </div>
+
+                                <div class="flex items-center gap-2">
+                                    <input type="checkbox"
+                                           name="is_active"
+                                           id="active-{{ ss.id }}"
+                                           {% if ss.is_active %}checked{% endif %}
+                                           class="w-5 h-5 rounded border-black/20 text-accent focus:ring-accent/20">
+                                    <label for="active-{{ ss.id }}" class="text-sm font-bold text-darktext">
+                                        فعال باشه
+                                    </label>
+                                </div>
+
+                                <div class="flex gap-2">
+                                    <button type="submit"
+                                            class="flex-1 bg-success text-white font-bold py-2.5 rounded-xl hover:opacity-90 transition text-sm">
+                                        💾 ذخیره
+                                    </button>
+                                    <button type="button"
+                                            @click="editing = false"
+                                            class="px-4 bg-white text-darktext/70 font-bold rounded-xl hover:bg-cream transition border border-black/10 text-sm">
+                                        انصراف
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="p-8 text-center text-darktext/50">
+                هنوز کارمندی به این خدمت اضافه نشده.
+            </div>
+        {% endif %}
+    </div>
+
+    {# ═══════════════════ افزودن کارمند جدید ═══════════════════ #}
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">➕ افزودن کارمند به این خدمت</h2>
+        </div>
+
+        <form method="post" class="p-5 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_staff">
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">کارمند</label>
+                {{ staff_service_form.staff }}
+                {% if staff_service_form.staff.errors %}
+                    <p class="text-danger text-xs mt-1">{{ staff_service_form.staff.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">
+                    قیمت اختصاصی (اختیاری)
+                </label>
+                {{ staff_service_form.price }}
+                <p class="text-xs text-darktext/50 mt-1">
+                    اگه خالی بذاری، از قیمت پیش‌فرض خدمت ({{ service.price|floatformat:0 }} تومان) استفاده میشه.
+                </p>
+                {% if staff_service_form.price.errors %}
+                    <p class="text-danger text-xs mt-1">{{ staff_service_form.price.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-success text-white font-bold py-3 rounded-xl hover:opacity-90 transition">
+                ➕ افزودن کارمند
             </button>
         </form>
     </div>

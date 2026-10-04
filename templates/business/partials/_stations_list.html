@@ -11,14 +11,7 @@
                             <span class="text-xs bg-danger/10 text-danger px-2 py-0.5 rounded-full font-bold">غیرفعال</span>
                         {% endif %}
                     </div>
-                    {% if st.staff_members.exists %}
-                        <p class="text-xs text-darktext/60 mt-1">
-                            👤
-                            {% for s in st.staff_members.all %}
-                                {{ s.name }}{% if not forloop.last %}، {% endif %}
-                            {% endfor %}
-                        </p>
-                    {% endif %}
+                    {# ─── ❌ بخش staff_members حذف شد ─── #}
                 </div>
 
                 <div class="flex gap-1 shrink-0">

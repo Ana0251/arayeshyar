@@ -1,9 +1,16 @@
 /**
  * Persian DatePicker برای صفحه رزرو.
+ *
+ * ─── نکته: ───
+ * - min-date = امروز (جلوی انتخاب تاریخ گذشته رو می‌گیره)
+ * - max-date = ۷ روز آینده (طبق MAX_BOOKING_DAYS_AHEAD)
  */
 
 (function () {
     'use strict';
+
+    // ─── حداکثر روز آینده برای رزرو ───
+    const MAX_DAYS_AHEAD = 7;
 
     function initDatePicker() {
         const container = document.getElementById('date-picker-container');
@@ -29,7 +36,35 @@
             picker.setAttribute('placeholder', '۱۴۰۳/۰۷/۰۵');
             picker.setAttribute('format', 'YYYY/MM/DD');
             picker.setAttribute('rtl', 'true');
-            // ⚠️ events-url رو نذار (تا درخواست نکنه)
+
+            // ═══ min-date = امروز ═══
+            const today = new Date();
+            if (typeof Jalali !== 'undefined') {
+                const todayJalali = Jalali.toJalali(
+                    today.getFullYear(),
+                    today.getMonth() + 1,
+                    today.getDate()
+                );
+                picker.setAttribute('min-date', JSON.stringify([
+                    todayJalali.jy,
+                    todayJalali.jm,
+                    todayJalali.jd,
+                ]));
+
+                // ═══ max-date = ۷ روز آینده ═══
+                const maxDate = new Date();
+                maxDate.setDate(maxDate.getDate() + MAX_DAYS_AHEAD);
+                const maxJalali = Jalali.toJalali(
+                    maxDate.getFullYear(),
+                    maxDate.getMonth() + 1,
+                    maxDate.getDate()
+                );
+                picker.setAttribute('max-date', JSON.stringify([
+                    maxJalali.jy,
+                    maxJalali.jm,
+                    maxJalali.jd,
+                ]));
+            }
 
             // ═══ listener ═══
             picker.addEventListener('change', function (event) {

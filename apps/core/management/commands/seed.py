@@ -24,6 +24,8 @@ from apps.business.models import (
     Service,
     SpecialWorkingHours,
     Staff,
+    StaffSchedule,
+    StaffService,
     Station,
     TargetAudience,
     WorkingHours,
@@ -47,13 +49,12 @@ class Command(BaseCommand):
         parser.add_argument(
             "--minimal",
             action="store_true",
-            help="فقط TargetAudience و ActivityType (بدون کسب‌وکار)",
+            help="فقط TargetAudience و ActivityType",
         )
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("🌱 شروع seed..."))
 
-        # ─── چک کن Plan ها وجود داشته باشن ───
         if not Plan.objects.exists():
             self.stdout.write(
                 self.style.ERROR(
@@ -90,6 +91,8 @@ class Command(BaseCommand):
         WaitingList.objects.all().delete()
         BlockedCustomer.objects.all().delete()
 
+        StaffService.objects.all().delete()
+        StaffSchedule.objects.all().delete()
         Service.objects.all().delete()
         Station.objects.all().delete()
 
@@ -123,13 +126,11 @@ class Command(BaseCommand):
 
         audiences = {}
         for item in data:
-            obj, created = TargetAudience.objects.get_or_create(
+            obj, _ = TargetAudience.objects.get_or_create(
                 slug=item["slug"],
                 defaults=item,
             )
             audiences[item["slug"]] = obj
-            if created:
-                self.stdout.write(f"   + {obj}")
 
         return audiences
 
@@ -159,22 +160,18 @@ class Command(BaseCommand):
 
         activities = {}
         for item in personal:
-            obj, created = ActivityType.objects.get_or_create(
+            obj, _ = ActivityType.objects.get_or_create(
                 slug=item["slug"],
                 defaults={**item, "is_salon": False},
             )
             activities[item["slug"]] = obj
-            if created:
-                self.stdout.write(f"   + {obj}")
 
         for item in salon:
-            obj, created = ActivityType.objects.get_or_create(
+            obj, _ = ActivityType.objects.get_or_create(
                 slug=item["slug"],
                 defaults={**item, "is_salon": True},
             )
             activities[item["slug"]] = obj
-            if created:
-                self.stdout.write(f"   + {obj}")
 
         return activities
 
@@ -186,14 +183,11 @@ class Command(BaseCommand):
         """ساخت کسب‌وکارهای تستی."""
         self.stdout.write("🏪 ساخت کسب‌وکارها...")
 
-        # ─── Plan ها ───
         try:
             trial_plan = Plan.objects.get(slug="trial")
             pro_plan = Plan.objects.get(slug="pro")
         except Plan.DoesNotExist:
-            self.stdout.write(
-                self.style.ERROR("❌ Plan ها پیدا نشدن! اول migrate بزن.")
-            )
+            self.stdout.write(self.style.ERROR("❌ Plan ها پیدا نشدن!"))
             return
 
         self._create_barber_ali(audiences["men"], activities["barber"], trial_plan)
@@ -201,14 +195,13 @@ class Command(BaseCommand):
         self._create_rose_laser(audiences["women"], activities["laser-clinic"], pro_plan)
 
     # ───────────────────────────────────────────────────────────
-    #  Helper: اطمینان از وجود Station و Staff
+    #  Helper: Staff صاحب
     # ───────────────────────────────────────────────────────────
 
-    def _ensure_station_and_staff(self, business):
-        """اطمینان از وجود Station و Staff برای کسب‌وکار."""
+    def _ensure_owner_staff(self, business):
+        """اطمینان از وجود Staff صاحب."""
         business.refresh_from_db()
 
-        # ─── Staff صاحب ───
         owner_staff = business.staff.filter(is_owner=True).first()
         if not owner_staff:
             owner_staff = Staff.objects.create(
@@ -218,16 +211,47 @@ class Command(BaseCommand):
                 is_owner=True,
             )
 
-        # ─── Station پیش‌فرض ───
-        station = business.stations.filter(is_active=True).first()
-        if not station:
-            station = Station.objects.create(
-                business=business,
-                name="محل کار",
-                order=0,
-            )
+        return owner_staff
 
-        return station, owner_staff
+    # ───────────────────────────────────────────────────────────
+    #  Helper: شیفت کارمند
+    # ───────────────────────────────────────────────────────────
+
+    def _create_schedule(
+        self,
+        staff,
+        station,
+        weekday,
+        start_hour,
+        end_hour,
+    ):
+        """ساخت شیفت کارمند."""
+        StaffSchedule.objects.get_or_create(
+            staff=staff,
+            station=station,
+            weekday=weekday,
+            start_time=time(start_hour, 0),
+            defaults={
+                "end_time": time(end_hour, 0),
+                "is_active": True,
+            },
+        )
+
+    # ───────────────────────────────────────────────────────────
+    #  Helper: StaffService
+    # ───────────────────────────────────────────────────────────
+
+    def _link_staff_service(self, staff, service, price=0):
+        """اتصال کارمند به خدمت."""
+        StaffService.objects.get_or_create(
+            staff=staff,
+            service=service,
+            station=service.station,
+            defaults={
+                "price": price,
+                "is_active": True,
+            },
+        )
 
     # ───────────────────────────────────────────────────────────
     #  کسب‌وکار ۱: آرایشگر علی (شخصی)
@@ -254,7 +278,7 @@ class Command(BaseCommand):
                 "region": "ونک",
                 "address": "خیابان ونک، پلاک ۱۲",
                 "bio": "۱۰ سال سابقه، متخصص اصلاح کلاسیک",
-                "plan": plan,   # ← FK به Plan
+                "plan": plan,
                 "plan_expires_at": timezone.localdate() + timedelta(days=plan.duration_days),
                 "is_active": True,
                 "auto_confirm": True,
@@ -265,9 +289,16 @@ class Command(BaseCommand):
 
         self.stdout.write(f"   + {business}")
 
-        station, owner_staff = self._ensure_station_and_staff(business)
+        owner_staff = self._ensure_owner_staff(business)
 
-        # ─── خدمات ───
+        station = business.stations.filter(is_active=True).first()
+        if not station:
+            station = Station.objects.create(
+                business=business,
+                name="محل کار",
+                order=0,
+            )
+
         services_data = [
             {"name": "کوتاهی مو", "duration": 30, "price": 150_000},
             {"name": "اصلاح ریش", "duration": 20, "price": 80_000},
@@ -275,7 +306,7 @@ class Command(BaseCommand):
         ]
 
         for idx, s in enumerate(services_data):
-            svc, svc_created = Service.objects.get_or_create(
+            svc, _ = Service.objects.get_or_create(
                 business=business,
                 station=station,
                 name=s["name"],
@@ -285,10 +316,9 @@ class Command(BaseCommand):
                     "order": idx,
                 },
             )
-            if svc_created:
-                svc.staff_members.add(owner_staff)
+            self._link_staff_service(owner_staff, svc)
 
-        # ─── برنامه هفتگی ───
+        # ─── WorkingHours (فقط شخصی) ───
         for weekday in range(0, 5):
             WorkingHours.objects.get_or_create(
                 business=business,
@@ -337,44 +367,34 @@ class Command(BaseCommand):
 
         self.stdout.write(f"   + {business}")
 
-        _, sara_staff = self._ensure_station_and_staff(business)
+        sara_staff = self._ensure_owner_staff(business)
 
-        # ─── کارمندها ───
         naghmeh, _ = Staff.objects.get_or_create(
-            business=business,
-            name="نرگس احمدی",
-            defaults={"phone": "09121111111", "order": 1},
+            business=business, name="نرگس احمدی", defaults={"phone": "09121111111", "order": 1}
         )
         kosar, _ = Staff.objects.get_or_create(
-            business=business,
-            name="کوثر رضایی",
-            defaults={"phone": "09122222222", "order": 2},
+            business=business, name="کوثر رضایی", defaults={"phone": "09122222222", "order": 2}
         )
         zainab, _ = Staff.objects.get_or_create(
-            business=business,
-            name="زینب کریمی",
-            defaults={"phone": "09123333333", "order": 3},
+            business=business, name="زینب کریمی", defaults={"phone": "09123333333", "order": 3}
         )
         maryam, _ = Staff.objects.get_or_create(
-            business=business,
-            name="مریم موسوی",
-            defaults={"phone": "09124444444", "order": 4},
+            business=business, name="مریم موسوی", defaults={"phone": "09124444444", "order": 4}
         )
 
-        # ─── اتاق‌ها ───
         room_color, _ = Station.objects.get_or_create(
-            business=business,
-            name="اتاق رنگ",
-            defaults={"order": 0},
+            business=business, name="اتاق رنگ", defaults={"order": 0}
         )
-        room_color.staff_members.set([naghmeh, kosar, zainab, sara_staff])
-
         room_nails, _ = Station.objects.get_or_create(
-            business=business,
-            name="اتاق ناخن",
-            defaults={"order": 1},
+            business=business, name="اتاق ناخن", defaults={"order": 1}
         )
-        room_nails.staff_members.set([maryam])
+
+        # ─── شیفت‌ها ───
+        for weekday in range(0, 6):
+            self._create_schedule(naghmeh, room_color, weekday, 9, 14)
+            self._create_schedule(kosar, room_color, weekday, 14, 21)
+            self._create_schedule(zainab, room_color, weekday, 9, 17)
+            self._create_schedule(maryam, room_nails, weekday, 9, 18)
 
         # ─── خدمات ───
         services_data = [
@@ -386,7 +406,7 @@ class Command(BaseCommand):
         ]
 
         for idx, s in enumerate(services_data):
-            svc, svc_created = Service.objects.get_or_create(
+            svc, _ = Service.objects.get_or_create(
                 business=business,
                 station=s["station"],
                 name=s["name"],
@@ -396,21 +416,8 @@ class Command(BaseCommand):
                     "order": idx,
                 },
             )
-            if svc_created:
-                svc.staff_members.set(s["staff"])
-
-        # ─── برنامه هفتگی ───
-        for weekday in range(0, 6):
-            WorkingHours.objects.get_or_create(
-                business=business,
-                station=None,
-                weekday=weekday,
-                defaults={
-                    "start_time": time(9, 0),
-                    "end_time": time(21, 0),
-                    "is_active": True,
-                },
-            )
+            for staff in s["staff"]:
+                self._link_staff_service(staff, svc)
 
     # ───────────────────────────────────────────────────────────
     #  کسب‌وکار ۳: کلینیک لیزر رز
@@ -448,9 +455,8 @@ class Command(BaseCommand):
 
         self.stdout.write(f"   + {business}")
 
-        _, doctor = self._ensure_station_and_staff(business)
+        doctor = self._ensure_owner_staff(business)
 
-        # ─── اپراتورها ───
         naghmeh, _ = Staff.objects.get_or_create(
             business=business, name="نرگس احمدی", defaults={"order": 1}
         )
@@ -461,21 +467,23 @@ class Command(BaseCommand):
             business=business, name="زینب کریمی", defaults={"order": 3}
         )
 
-        # ─── اتاق‌ها ───
         room1, _ = Station.objects.get_or_create(
             business=business, name="اتاق ۱ (الکس)", defaults={"order": 0}
         )
-        room1.staff_members.set([naghmeh, zainab])
-
         room2, _ = Station.objects.get_or_create(
             business=business, name="اتاق ۲ (دایود)", defaults={"order": 1}
         )
-        room2.staff_members.set([naghmeh, kosar])
-
         room3, _ = Station.objects.get_or_create(
             business=business, name="اتاق ۳ (Nd:YAG)", defaults={"order": 2}
         )
-        room3.staff_members.set([kosar])
+
+        # ─── شیفت‌ها ───
+        for weekday in range(0, 6):
+            self._create_schedule(naghmeh, room1, weekday, 9, 17)
+            self._create_schedule(zainab, room1, weekday, 9, 17)
+            self._create_schedule(naghmeh, room2, weekday, 10, 18)
+            self._create_schedule(kosar, room2, weekday, 10, 18)
+            self._create_schedule(kosar, room3, weekday, 9, 15)
 
         # ─── خدمات ───
         services_data = [
@@ -488,7 +496,7 @@ class Command(BaseCommand):
         ]
 
         for idx, s in enumerate(services_data):
-            svc, svc_created = Service.objects.get_or_create(
+            svc, _ = Service.objects.get_or_create(
                 business=business,
                 station=s["station"],
                 name=s["name"],
@@ -498,21 +506,8 @@ class Command(BaseCommand):
                     "order": idx,
                 },
             )
-            if svc_created:
-                svc.staff_members.set(s["staff"])
-
-        # ─── برنامه هفتگی ───
-        for weekday in range(0, 6):
-            WorkingHours.objects.get_or_create(
-                business=business,
-                station=None,
-                weekday=weekday,
-                defaults={
-                    "start_time": time(9, 0),
-                    "end_time": time(21, 0),
-                    "is_active": True,
-                },
-            )
+            for staff in s["staff"]:
+                self._link_staff_service(staff, svc)
 
     # ═══════════════════════════════════════════════════════════
     #  Customers
@@ -557,7 +552,9 @@ class Command(BaseCommand):
         self.stdout.write(f"   کسب‌وکارها: {Business.objects.count()}")
         self.stdout.write(f"   کارمندها: {Staff.objects.count()}")
         self.stdout.write(f"   ایستگاه‌ها: {Station.objects.count()}")
+        self.stdout.write(f"   شیفت‌ها: {StaffSchedule.objects.count()}")
         self.stdout.write(f"   خدمات: {Service.objects.count()}")
+        self.stdout.write(f"   خدمات per-staff: {StaffService.objects.count()}")
         self.stdout.write(f"   مشتری‌ها: {User.objects.filter(role=Role.CUSTOMER).count()}")
         self.stdout.write("")
 

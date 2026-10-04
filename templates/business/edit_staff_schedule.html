@@ -1,0 +1,85 @@
+{% extends 'base.html' %}
+
+{% block title %}ویرایش شیفت — {{ schedule.staff.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:manage_staff_schedules' %}?station={{ schedule.station_id }}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به شیفت‌ها
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">✏️ ویرایش شیفت</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            {{ schedule.staff.name }} در {{ schedule.station.name }}
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">📝 اطلاعات شیفت</h2>
+        </div>
+
+        <form method="post" class="p-5 space-y-4">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                    {% for error in form.non_field_errors %}<p>⚠️ {{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">کارمند</label>
+                    {{ form.staff }}
+                    {% if form.staff.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.staff.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">روز هفته</label>
+                    {{ form.weekday }}
+                    {% if form.weekday.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.weekday.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">از ساعت</label>
+                    {{ form.start_time }}
+                    {% if form.start_time.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.start_time.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">تا ساعت</label>
+                    {{ form.end_time }}
+                    {% if form.end_time.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.end_time.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                {{ form.is_active }}
+                <label class="text-sm font-bold text-darktext">فعال باشه</label>
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <a href="{% url 'business:manage_staff_schedules' %}?station={{ schedule.station_id }}"
+                   class="px-5 bg-white text-darktext/70 font-bold rounded-xl hover:bg-cream transition border border-black/10 py-3.5 text-center">
+                    ← انصراف
+                </a>
+                <button type="submit"
+                        class="flex-1 bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 transition">
+                    💾 ذخیره تغییرات
+                </button>
+            </div>
+        </form>
+    </div>
+
+{% endblock %}

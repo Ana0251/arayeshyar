@@ -10,8 +10,8 @@
 3. ایستگاه‌ها و خدمات از session خونده میشن و ساخته میشن
 
 ─── نکته مهم: ───
-Staff owner خودکار توسط signal `business.signals.on_business_created`
-ساخته میشه. این سرویس فقط Staff های اضافی (برای station ها) رو می‌سازه.
+- Staff owner خودکار توسط signal ساخته میشه
+- مسئول‌های هر خدمت از طریق StaffService (نه M2M) ثبت میشن
 """
 
 import logging
@@ -23,12 +23,13 @@ from django.utils.text import slugify
 from apps.accounts.constants import Role
 from apps.accounts.models import User
 
-from ..models import Plan
 from ..models import (
     ActivityType,
     Business,
+    Plan,
     Service,
     Staff,
+    StaffService,
     Station,
     TargetAudience,
 )
@@ -128,8 +129,10 @@ class RegisterService:
                 is_salon,
             )
 
-        # ─── Business ───
+        # ─── Plan trial ───
         trial_plan = Plan.objects.filter(slug="trial").first()
+
+        # ─── Business ───
         business = Business(
             owner=self.user,
             target_audience=audience,
@@ -142,7 +145,7 @@ class RegisterService:
             address=info_data.get("address", ""),
             bio=info_data.get("bio", ""),
             plan=trial_plan,
-            is_active=False,  # ← منتظر تأیید ادمین
+            is_active=False,
         )
 
         # ─── فایل‌ها ───
@@ -154,17 +157,8 @@ class RegisterService:
             business.entrance_photo = files["entrance_photo"]
 
         business.save()
-        # ─── ست کردن plan_expires_at ───
-        if trial_plan:
-            business.plan_expires_at = (
-                timezone.localdate() + timedelta(days=trial_plan.duration_days)
-            )
-            business.save(update_fields=["plan_expires_at"])
-        # ═══ بعد از save، signal ها اجرا میشن: ═══
-        # - BusinessOwnerProfile
-        # - Staff صاحب (is_owner=True)
-        # - Station خودکار برای شخصی
-        # - trial = 30 روز
+
+        # ─── بعد از save، signal ها اجرا میشن ───
         business.refresh_from_db()
 
         # ─── ایستگاه‌ها (فقط سالن) ───
@@ -176,10 +170,8 @@ class RegisterService:
         if stations:
             default_station = stations[0]
         else:
-            # ─── برای شخصی: station خودکار از signal ───
             default_station = business.stations.filter(is_active=True).first()
             if not default_station:
-                # ─── fallback: اگه signal اجرا نشده باشه ───
                 default_station = Station.objects.create(
                     business=business,
                     name="محل کار" if not is_salon else "ایستگاه اصلی",
@@ -198,7 +190,7 @@ class RegisterService:
                 owner_staff,
             )
 
-        # ─── آپدیت role کاربر (احتیاط: signal هم انجام می‌ده) ───
+        # ─── آپدیت role کاربر ───
         if self.user.role != Role.BUSINESS_OWNER:
             self.user.role = Role.BUSINESS_OWNER
             self.user.save(update_fields=["role"])
@@ -221,12 +213,7 @@ class RegisterService:
         name: str,
         is_salon: bool,
     ) -> ActivityType:
-        """
-        ساخت ActivityType برای «سایر».
-
-        ─── نکته: ───
-        is_active=False تا ادمین تأییدش کنه.
-        """
+        """ساخت ActivityType برای «سایر»."""
         name = name.strip()
         if not name:
             raise ValueError("نام فعالیت سفارشی خالیه.")
@@ -261,7 +248,7 @@ class RegisterService:
 
         ─── هر ایستگاه: ───
         - name (اجباری)
-        - staff (اختیاری، اسم فرد) → یه Staff جدید می‌سازه
+        - staff (اختیاری، اسم فرد) → Staff جدید می‌سازه
         """
         stations = []
 
@@ -277,11 +264,10 @@ class RegisterService:
             )
             stations.append(station)
 
-            # ─── Staff اختیاری ───
+            # ─── Staff اختیاری (فقط ساخت، بدون M2M) ───
             staff_name = (data.get("staff") or "").strip()
             if staff_name:
-                # ─── چک تکراری ───
-                staff, _created = Staff.objects.get_or_create(
+                Staff.objects.get_or_create(
                     business=business,
                     name=staff_name,
                     defaults={
@@ -289,7 +275,6 @@ class RegisterService:
                         "order": idx,
                     },
                 )
-                station.staff_members.add(staff)
 
         return stations
 
@@ -304,8 +289,8 @@ class RegisterService:
         ساخت خدمات.
 
         ─── نکته: ───
-        station اجباریه. خدمات به این ایستگاه وصل میشن.
-        صاحب کسب‌وکار به‌عنوان مسئول پیش‌فرض اضافه میشه.
+        station اجباریه. صاحب کسب‌وکار به‌عنوان مسئول پیش‌فرض از
+        طریق StaffService اضافه میشه.
         """
         services = []
 
@@ -333,9 +318,17 @@ class RegisterService:
                 order=idx,
             )
 
-            # ─── اضافه کردن صاحب به عنوان مسئول ───
+            # ─── اضافه کردن صاحب به عنوان مسئول از طریق StaffService ───
             if owner_staff:
-                service.staff_members.add(owner_staff)
+                StaffService.objects.get_or_create(
+                    staff=owner_staff,
+                    service=service,
+                    station=station,
+                    defaults={
+                        "price": 0,
+                        "is_active": True,
+                    },
+                )
 
             services.append(service)
 

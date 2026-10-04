@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static jalali %}
+
+{% block title %}آمار و گزارش‌ها — {{ business.name }}{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'business:dashboard' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به داشبورد
+    </a>
+
+    {# ─── Header ─── #}
+    <div class="bg-primary text-white rounded-2xl shadow-md p-5 mb-5">
+        <div class="flex items-center gap-4 flex-wrap">
+            <div class="w-14 h-14 rounded-full bg-accent text-primary flex items-center justify-center text-3xl shrink-0">
+                📊
+            </div>
+            <div class="flex-1 min-w-0">
+                <h1 class="text-2xl font-bold">آمار و گزارش‌ها</h1>
+                <p class="text-sm text-white/70 mt-1">
+                    {{ business.name }} · بازه‌ی {{ range_days }} روز اخیر
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {# ─── فیلتر بازه ─── #}
+    <div class="bg-white rounded-2xl shadow-sm p-4 mb-5">
+        <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-xs font-bold text-darktext/60 ml-2">بازه:</span>
+
+            {% for key, label in ranges %}
+                <a href="?range={{ key }}"
+                   class="px-3 py-2 rounded-lg text-xs font-bold transition
+                          {% if range_key == key %}bg-primary text-white{% else %}bg-cream text-darktext/70 hover:bg-primary/10{% endif %}">
+                    {{ label }}
+                </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# ═══════════════ کارت‌های آمار کلی ═══════════════ #}
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-xl shadow-sm p-4 text-center border-r-4 border-primary">
+            <div class="text-2xl font-bold text-primary">{{ overall.total_appointments }}</div>
+            <div class="text-xs text-darktext/60 mt-1">کل نوبت‌ها</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 text-center border-r-4 border-success">
+            <div class="text-2xl font-bold text-success">{{ overall.completed_count }}</div>
+            <div class="text-xs text-darktext/60 mt-1">انجام شده</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 text-center border-r-4 border-warning">
+            <div class="text-2xl font-bold text-warning">{{ overall.cancelled_count }}</div>
+            <div class="text-xs text-darktext/60 mt-1">لغو شده</div>
+        </div>
+        <div class="bg-white rounded-xl shadow-sm p-4 text-center border-r-4 border-accent">
+            <div class="text-2xl font-bold text-accent">{{ overall.unique_customers }}</div>
+            <div class="text-xs text-darktext/60 mt-1">مشتری یکتا</div>
+        </div>
+    </div>
+
+    {# ─── کارت‌های درآمد ─── #}
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+        <div class="bg-gradient-to-l from-accent/20 to-accent/5 rounded-2xl shadow-sm p-5">
+            <div class="text-xs text-darktext/60 font-bold mb-1">💰 درآمد تخمینی</div>
+            <div class="text-2xl font-bold text-accent">
+                {{ overall.total_revenue|floatformat:0 }}
+                <span class="text-sm font-normal text-darktext/50">تومان</span>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm p-5">
+            <div class="text-xs text-darktext/60 font-bold mb-1">📈 میانگین هر نوبت</div>
+            <div class="text-2xl font-bold text-primary">
+                {{ overall.avg_revenue_per_appointment|floatformat:0 }}
+                <span class="text-sm font-normal text-darktext/50">تومان</span>
+            </div>
+        </div>
+        <div class="bg-white rounded-2xl shadow-sm p-5">
+            <div class="text-xs text-darktext/60 font-bold mb-1">✅ نرخ تکمیل</div>
+            <div class="text-2xl font-bold text-success">
+                {{ overall.completion_rate }}%
+            </div>
+        </div>
+    </div>
+
+    {# ═══════════════ ساعات طلایی ═══════════════ #}
+    {% if golden_hours %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">⏰ ساعات طلایی</h2>
+                <p class="text-xs text-darktext/60 mt-0.5">
+                    ساعت‌هایی که بیشترین نوبت رو داشتن
+                </p>
+            </div>
+
+            <div class="p-5 space-y-2">
+                {% for item in golden_hours %}
+                    <div class="flex items-center gap-3">
+                        <div class="w-14 text-xs font-mono text-primary font-bold text-center shrink-0" dir="ltr">
+                            {{ item.label }}
+                        </div>
+                        <div class="flex-1 bg-cream/50 rounded-full h-6 overflow-hidden relative">
+                            <div class="h-full rounded-full
+                                        {% if item.is_golden %}bg-accent{% else %}bg-primary/40{% endif %}"
+                                 style="width: {{ item.percentage }}%">
+                            </div>
+                            <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
+                                {{ item.count }} نوبت
+                                {% if item.is_golden %} ⭐{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ روزهای طلایی ═══════════════ #}
+    {% if golden_weekdays %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">📅 روزهای طلایی</h2>
+                <p class="text-xs text-darktext/60 mt-0.5">
+                    روزهای هفته که بیشترین نوبت رو داشتن
+                </p>
+            </div>
+
+            <div class="p-5 space-y-2">
+                {% for item in golden_weekdays %}
+                    <div class="flex items-center gap-3">
+                        <div class="w-20 text-xs font-bold text-primary text-center shrink-0">
+                            {{ item.name }}
+                        </div>
+                        <div class="flex-1 bg-cream/50 rounded-full h-6 overflow-hidden relative">
+                            <div class="h-full rounded-full
+                                        {% if item.is_golden %}bg-accent{% else %}bg-primary/40{% endif %}"
+                                 style="width: {{ item.percentage }}%">
+                            </div>
+                            <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-primary">
+                                {{ item.count }} نوبت
+                                {% if item.is_golden %} ⭐{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ خدمات برتر ═══════════════ #}
+    {% if service_stats %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">✂️ خدمات برتر</h2>
+            </div>
+
+            <div class="divide-y divide-black/5">
+                {% for svc in service_stats %}
+                    <div class="p-4 flex items-center justify-between gap-3">
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-primary">{{ svc.service_name }}</div>
+                            <div class="text-xs text-darktext/60 mt-1">
+                                {{ svc.count }} نوبت · میانگین {{ svc.avg_price|floatformat:0 }} تومان
+                            </div>
+                        </div>
+                        <div class="text-sm font-bold text-accent shrink-0">
+                            {{ svc.revenue|floatformat:0 }} تومان
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ مشتریان برتر ═══════════════ #}
+    {% if top_customers %}
+        <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5">
+                <h2 class="font-bold text-primary">👥 مشتریان برتر</h2>
+            </div>
+
+            <div class="divide-y divide-black/5">
+                {% for item in top_customers %}
+                    <div class="p-4 flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-accent/20 text-accent flex items-center justify-center font-bold shrink-0">
+                            {{ item.customer.display_name|slice:":1" }}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="font-bold text-primary">{{ item.customer.display_name }}</div>
+                            <div class="text-xs text-darktext/60 mt-0.5">
+                                {{ item.appointments_count }} نوبت
+                            </div>
+                        </div>
+                        <div class="text-sm font-bold text-accent shrink-0">
+                            {{ item.total_spent|floatformat:0 }} تومان
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ─── Empty State ─── #}
+    {% if not overall.total_appointments %}
+        <div class="bg-white rounded-2xl shadow-md p-10 text-center">
+            <div class="text-4xl mb-3">📊</div>
+            <h2 class="font-bold text-primary text-lg mb-2">
+                هنوز داده‌ای برای نمایش نیست
+            </h2>
+            <p class="text-sm text-darktext/60">
+                بعد از ثبت چند نوبت، آمار اینجا نمایش داده میشه.
+            </p>
+        </div>
+    {% endif %}
+
+{% endblock %}

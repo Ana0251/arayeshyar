@@ -12,7 +12,7 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.business.models import Business, Service, Staff, Station
 
-from ..constants import AppointmentStatus, MAX_BOOKING_DAYS_AHEAD
+from ..constants import AppointmentStatus
 from ..models import Appointment, BlockedCustomer
 from .availability import AvailabilityService
 
@@ -44,10 +44,6 @@ class DuplicateBookingError(BookingError):
     """مشتری سر این ساعت نوبت دیگه داره."""
 
 
-class TooFarAheadError(BookingError):
-    """تاریخ نوبت خیلی دور است."""
-
-
 # ═══════════════════════════════════════════════════════════════
 #  BookingService
 # ═══════════════════════════════════════════════════════════════
@@ -62,11 +58,11 @@ class BookingService:
     2. مشتری نباید بلاک شده باشه
     3. اسلات باید آزاد باشه
     4. مشتری نباید سر همون ساعت جای دیگه نوبت داشته باشه
-    5. نوبت نباید بیشتر از MAX_BOOKING_DAYS_AHEAD روز آینده باشه
-    6. اگه auto_confirm → مستقیم confirmed
+    5. اگه auto_confirm → مستقیم confirmed
 
     ─── Race Condition: ───
-    از `select_for_update` روی Business استفاده می‌کنیم.
+    برای جلوگیری از double booking، از `select_for_update` روی Business
+    استفاده می‌کنیم. این باعث میشه رزروها برای یه کسب‌وکار سریال بشن.
     """
 
     def __init__(self, business: Business) -> None:
@@ -91,21 +87,19 @@ class BookingService:
         """
         ایجاد نوبت جدید.
 
-        Args:
-            customer: مشتری
-            service: خدمت
-            start_at: زمان شروع
-            staff: کارمند (اگه مشخص باشه)
-            customer_note: یادداشت مشتری
-            created_by: چه کسی ساخت (برای ثبت دستی)
-            force: اگه True، تداخل رو نادیده بگیر (فقط برای ثبت دستی)
+        ─── Race Condition: ───
+        1. قفل روی Business (select_for_update) → رزروهای یه business سریال میشن
+        2. چک دوباره‌ی availability بعد از قفل
+        3. اگه IntegrityError از UniqueConstraint اومد → SlotNotAvailableError
 
-        Returns:
-            Appointment
+        ─── قیمت: ───
+        اگه staff مشخص شده، از `StaffService.effective_price` استفاده کن.
+        وگرنه از `Service.price`.
 
-        Raises:
-            BusinessNotActiveError, CustomerBlockedError,
-            SlotNotAvailableError, DuplicateBookingError, TooFarAheadError
+        ─── تعیین staff (اگه فرقی نمی‌کنه): ───
+        - ۱ کارمند → خودکار
+        - ۲+ کارمند → یه کارمند آزاد انتخاب کن
+        - هیچ کارمند آزاد → خطا
         """
         # ═══════════════════════════════════════════════════════════
         #  قفل روی Business (race condition guard)
@@ -124,21 +118,28 @@ class BookingService:
 
         # ─── ۳. تعیین staff ───
         if not staff:
-            service_staff = list(
-                service.staff_members.filter(is_active=True)
-            )
+            service_staff = self._get_service_staff(service)
+
             if len(service_staff) == 1:
                 staff = service_staff[0]
+            elif len(service_staff) > 1:
+                # ─── یه کارمند آزاد انتخاب کن ───
+                staff = self._pick_available_staff(
+                    service_staff,
+                    start_at,
+                    service.duration,
+                    service.station,
+                )
+                if not staff and not force:
+                    raise SlotNotAvailableError(
+                        "این ساعت هیچ کارمند آزادی نداره. لطفاً یه ساعت دیگه انتخاب کن."
+                    )
 
         # ─── ۴. محاسبه‌ی زمان ───
         duration = service.duration
         end_at = start_at + timedelta(minutes=duration)
 
-        # ─── ۵. چک بازه‌ی مجاز (حداکثر ۷ روز آینده) ───
-        if not force:
-            self._check_booking_range(start_at)
-
-        # ─── ۶. چک اسلات (دوباره، بعد از قفل) ───
+        # ─── ۵. چک اسلات (دوباره، بعد از قفل) ───
         if not force:
             availability = AvailabilityService(
                 self.business,
@@ -151,11 +152,16 @@ class BookingService:
                     "این ساعت در دسترس نیست. لطفاً یه ساعت دیگه انتخاب کن."
                 )
 
-        # ─── ۷. چک نوبت تکراری مشتری ───
+        # ─── ۶. چک نوبت تکراری مشتری ───
         if not force:
             self._check_customer_double_booking(customer, start_at)
 
-        # ─── ۸. وضعیت اولیه ───
+        # ═══════════════════════════════════════════════════════════
+        #  قیمت نهایی (از StaffService)
+        # ═══════════════════════════════════════════════════════════
+        final_price = self._get_final_price(service, staff)
+
+        # ─── ۷. وضعیت اولیه ───
         initial_status = (
             AppointmentStatus.CONFIRMED
             if self.business.auto_confirm or force
@@ -170,10 +176,10 @@ class BookingService:
                 business=self.business,
                 customer=customer,
                 service=service,
-                station=service.station,
+                station=service.station,  # ← خودکار از service
                 staff=staff,
                 service_name_snapshot=service.name,
-                service_price_snapshot=service.price,
+                service_price_snapshot=final_price,  # ← از StaffService
                 service_duration_snapshot=service.duration,
                 start_at=start_at,
                 end_at=end_at,
@@ -204,7 +210,7 @@ class BookingService:
         return appointment
 
     # ═══════════════════════════════════════════════════════════
-    #  Cancel / Confirm
+    #  Cancel
     # ═══════════════════════════════════════════════════════════
 
     @transaction.atomic
@@ -219,6 +225,10 @@ class BookingService:
         appointment.cancel(reason=reason, by_user=by_user)
         logger.info(f"Appointment #{appointment.pk} cancelled by {by_user}")
         return appointment
+
+    # ═══════════════════════════════════════════════════════════
+    #  Confirm
+    # ═══════════════════════════════════════════════════════════
 
     @transaction.atomic
     def confirm_appointment(
@@ -235,25 +245,79 @@ class BookingService:
     #  Helpers
     # ═══════════════════════════════════════════════════════════
 
-    def _check_booking_range(self, start_at: datetime) -> None:
+    def _get_service_staff(self, service: Service) -> list[Staff]:
         """
-        چک: نوبت توی بازه‌ی مجاز هست؟
-
-        ─── قاعده: ───
-        حداکثر تا MAX_BOOKING_DAYS_AHEAD روز آینده.
+        لیست کارمندهایی که این خدمت رو توی این اتاق انجام می‌دن.
         """
-        now_local = timezone.localtime(timezone.now())
-        booking_date = timezone.localtime(start_at).date()
-        max_date = now_local.date() + timedelta(days=MAX_BOOKING_DAYS_AHEAD)
+        from apps.business.models import StaffService
 
-        if booking_date > max_date:
-            raise TooFarAheadError(
-                f"حداکثر می‌تونی تا {MAX_BOOKING_DAYS_AHEAD} روز آینده نوبت بگیری."
+        staff_services = (
+            StaffService.objects.filter(
+                service=service,
+                station=service.station,
+                is_active=True,
+                staff__is_active=True,
             )
+            .select_related("staff")
+            .order_by("staff__order", "staff__name")
+        )
 
-        # ─── چک نوبت توی گذشته ───
-        if start_at < timezone.now():
-            raise BookingError("نمی‌تونی برای زمان گذشته نوبت بگیری.")
+        return [ss.staff for ss in staff_services]
+
+    def _pick_available_staff(
+        self,
+        staff_list: list[Staff],
+        start_at: datetime,
+        duration: int,
+        station: Station,
+    ) -> Staff | None:
+        """
+        انتخاب اولین کارمند آزاد برای یه ساعت مشخص.
+
+        ─── چرا؟ ───
+        وقتی مشتری «فرقی نمی‌کنه» رو می‌زنه، سیستم باید خودکار
+        یه کارمند آزاد انتخاب کنه که توی شیفتش باشه.
+        """
+        for staff in staff_list:
+            availability = AvailabilityService(
+                self.business,
+                start_at.date(),
+                station=station,
+                staff=staff,
+            )
+            if availability.is_slot_available(start_at, duration):
+                return staff
+
+        return None
+
+    def _get_final_price(
+        self,
+        service: Service,
+        staff: Staff | None,
+    ) -> int:
+        """
+        قیمت نهایی خدمت.
+
+        ─── منطق: ───
+        - اگه staff مشخص شده و StaffService داره → effective_price
+        - وگرنه → service.price
+        """
+        if not staff:
+            return service.price
+
+        from apps.business.models import StaffService
+
+        ss = StaffService.objects.filter(
+            staff=staff,
+            service=service,
+            station=service.station,
+            is_active=True,
+        ).first()
+
+        if ss:
+            return ss.effective_price
+
+        return service.price
 
     def _check_customer_double_booking(
         self,

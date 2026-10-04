@@ -2,19 +2,21 @@
 مدل‌های اپ business.
 
 شامل:
-1.  TargetAudience       — مخاطب (آقایان/بانوان/هردو/کودکان)
-2.  ActivityType         — نوع فعالیت (آرایشگر، سالن، ناخن‌کار، ...)
-3.  Plan                 — پلن اشتراک (قابل مدیریت از ادمین)
+1.  TargetAudience       — مخاطب
+2.  ActivityType         — نوع فعالیت
+3.  Plan                 — پلن اشتراک (قابل مدیریت)
 4.  Business             — کسب‌وکار
 5.  Staff                — کارمند
 6.  Station              — ایستگاه (اتاق)
-7.  Service              — خدمت
-8.  WorkingHours         — برنامه هفتگی
-9.  DayOff               — روز تعطیل
-10. SpecialWorkingHours  — ساعت خاص
-11. Break                — وقفه استراحت
-12. ProfileChangeRequest — درخواست تغییر حساس
-13. Payment              — پرداخت
+7.  StaffSchedule        — شیفت کارمند در اتاق
+8.  Service              — خدمت
+9.  StaffService         — خدمات per-staff
+10. WorkingHours         — برنامه هفتگی (فقط شخصی)
+11. DayOff               — روز تعطیل
+12. SpecialWorkingHours  — ساعت خاص
+13. Break                — وقفه
+14. ProfileChangeRequest — درخواست تغییر
+15. Payment              — پرداخت
 """
 
 from datetime import timedelta
@@ -99,13 +101,13 @@ class ActivityType(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۳. Plan (پلن اشتراک)
+#  ۳. Plan (پلن اشتراک — قابل مدیریت از ادمین)
 # ═══════════════════════════════════════════════════════════════
 
 
 class Plan(TimeStampedModel):
     """
-    پلن اشتراک (قابل مدیریت از ادمین).
+    پلن اشتراک.
 
     ─── چرا مدل؟ ───
     ادمین بتونه:
@@ -169,7 +171,7 @@ class Plan(TimeStampedModel):
     has_pro_features = models.BooleanField(
         _("ویژگی‌های ویژه"),
         default=False,
-        help_text=_("اگه True، امکانات pro (یادآور، لیست انتظار، ...) فعالن."),
+        help_text=_("اگه True، امکانات pro فعالن."),
     )
 
     class Meta:
@@ -182,7 +184,6 @@ class Plan(TimeStampedModel):
 
     @property
     def features_count(self) -> int:
-        """تعداد ویژگی‌ها."""
         return len(self.features) if isinstance(self.features, list) else 0
 
 
@@ -192,9 +193,8 @@ class Plan(TimeStampedModel):
 
 
 class Business(TimeStampedModel):
-    """کسب‌وکار — آرایشگر، سالن، ناخن‌کار، ماساژور، تتو کار، ..."""
+    """کسب‌وکار — آرایشگر، سالن، ناخن‌کار، ..."""
 
-    # ─── مالکیت ───
     owner = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -202,8 +202,6 @@ class Business(TimeStampedModel):
         verbose_name=_("صاحب کسب‌وکار"),
         limit_choices_to={"role": Role.BUSINESS_OWNER},
     )
-
-    # ─── نوع کسب‌وکار ───
     target_audience = models.ForeignKey(
         TargetAudience,
         on_delete=models.PROTECT,
@@ -218,7 +216,6 @@ class Business(TimeStampedModel):
     )
     is_salon = models.BooleanField(_("سالن داره؟"), default=False, db_index=True)
 
-    # ─── اطلاعات پایه ───
     name = models.CharField(_("نام"), max_length=100)
     slug = models.SlugField(
         _("شناسه لینک"),
@@ -233,7 +230,6 @@ class Business(TimeStampedModel):
     address = models.CharField(_("آدرس"), max_length=255)
     bio = models.TextField(_("درباره ما"), max_length=500, blank=True)
 
-    # ─── تصاویر ───
     avatar = models.ImageField(
         _("عکس پروفایل"),
         upload_to=UPLOAD_PATHS["avatar"],
@@ -256,24 +252,22 @@ class Business(TimeStampedModel):
         validators=[validate_image],
     )
 
-    # ─── وضعیت تأیید ───
     is_active = models.BooleanField(_("تأیید شده"), default=False, db_index=True)
     is_rejected = models.BooleanField(_("رد شده"), default=False)
     rejection_reason = models.TextField(_("دلیل رد"), blank=True)
 
-    # ─── پلن ───
     plan = models.ForeignKey(
         Plan,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="businesses",
-        verbose_name=_("پلن فعلی"),
+        verbose_name=_("پلن"),
     )
     plan_expires_at = models.DateField(_("تاریخ انقضای پلن"), null=True, blank=True)
 
-    # ─── تنظیمات ───
     auto_confirm = models.BooleanField(_("تأیید خودکار نوبت‌ها"), default=False)
 
-    # ─── Manager ───
     objects = BusinessManager()
 
     class Meta:
@@ -290,18 +284,12 @@ class Business(TimeStampedModel):
         icon = "🏢" if self.is_salon else "💁"
         return f"{icon} {self.name}"
 
-    # ═══════════════════════════════════════════════════════════
-    #  Save
-    # ═══════════════════════════════════════════════════════════
-
     def save(self, *args, **kwargs) -> None:
-        """ساخت خودکار slug اگه نداشت."""
         if not self.slug:
             self.slug = self._generate_unique_slug()
         super().save(*args, **kwargs)
 
     def _generate_unique_slug(self) -> str:
-        """ساخت slug یکتا از name."""
         base_slug = slugify(self.name, allow_unicode=True) or "business"
         slug = base_slug
         counter = 1
@@ -311,10 +299,6 @@ class Business(TimeStampedModel):
             slug = f"{base_slug}-{counter}"
 
         return slug
-
-    # ═══════════════════════════════════════════════════════════
-    #  Properties — وضعیت
-    # ═══════════════════════════════════════════════════════════
 
     @property
     def is_pending(self) -> bool:
@@ -326,17 +310,10 @@ class Business(TimeStampedModel):
 
     @property
     def has_pro_features(self) -> bool:
-        return self.plan.has_pro_features and self.is_plan_active
+        return bool(self.plan and self.plan.has_pro_features and self.is_plan_active)
 
     @property
     def is_plan_active(self) -> bool:
-        """
-        آیا پلن فعلی معتبره؟
-
-        ─── منطق: ───
-        اگه plan_expires_at داره: تاریخ رو چک کن.
-        اگه نداره: False (چون هر پلنی باید تاریخ داشته باشه).
-        """
         if not self.plan_expires_at:
             return False
         return self.plan_expires_at >= timezone.localdate()
@@ -385,10 +362,9 @@ class Staff(TimeStampedModel):
     کارمند کسب‌وکار.
 
     ─── نکته: ───
-    - صاحب کسب‌وکار هم یه Staff هست (is_owner=True، خودکار ساخته میشه)
-    - خدمت می‌تونه چند Staff داشته باشه (M2M)
-    - اتاق هم می‌تونه چند Staff داشته باشه (M2M، اختیاری)
-    - توی کسب‌وکار شخصی، فقط یه Staff هست (صاحب)
+    - صاحب کسب‌وکار هم یه Staff هست (is_owner=True)
+    - خدمت از طریق StaffService به Staff وصل میشه
+    - شیفت از طریق StaffSchedule مدیریت میشه
     """
 
     business = models.ForeignKey(
@@ -440,7 +416,7 @@ class Station(TimeStampedModel):
     ─── نکته: ───
     - برای سالن: اتاق (اتاق رنگ، اتاق ناخن، ...)
     - برای شخصی: یه Station خودکار («محل کار»)
-    - staff_members: کارمندهای این اتاق (اختیاری)
+    - کارمندها از طریق StaffSchedule و StaffService مدیریت میشن
     """
 
     business = models.ForeignKey(
@@ -449,13 +425,7 @@ class Station(TimeStampedModel):
         related_name="stations",
         verbose_name=_("کسب‌وکار"),
     )
-    staff_members = models.ManyToManyField(
-        Staff,
-        related_name="stations",
-        blank=True,
-        verbose_name=_("کارمندها"),
-        help_text=_("کارمندهایی که توی این ایستگاه کار می‌کنن (اختیاری)"),
-    )
+    # ─── ❌ staff_members حذف شد ───
     name = models.CharField(_("نام ایستگاه"), max_length=100)
     order = models.PositiveIntegerField(_("ترتیب"), default=0)
     is_active = models.BooleanField(_("فعال"), default=True)
@@ -475,7 +445,81 @@ class Station(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۷. Service
+#  ۷. StaffSchedule (شیفت کارمند در اتاق)
+# ═══════════════════════════════════════════════════════════════
+
+
+class StaffSchedule(TimeStampedModel):
+    """
+    شیفت کاری کارمند توی یه اتاق.
+
+    ─── نکته: ───
+    یه کارمند می‌تونه توی چند اتاق شیفت داشته باشه.
+    توی هر اتاق، ساعت کاری می‌تونه متفاوت باشه.
+    """
+
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.CASCADE,
+        related_name="schedules",
+        verbose_name=_("کارمند"),
+    )
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        related_name="staff_schedules",
+        verbose_name=_("اتاق"),
+    )
+    weekday = models.IntegerField(
+        _("روز هفته"),
+        choices=Weekday.choices,
+    )
+    start_time = models.TimeField(_("ساعت شروع"))
+    end_time = models.TimeField(_("ساعت پایان"))
+    is_active = models.BooleanField(_("فعال"), default=True)
+
+    class Meta:
+        verbose_name = _("شیفت کارمند")
+        verbose_name_plural = _("شیفت‌های کارمند")
+        ordering = ["station", "weekday", "start_time"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["staff", "station", "weekday", "start_time"],
+                name="unique_staff_station_weekday_start",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["station", "weekday"]),
+            models.Index(fields=["staff", "weekday"]),
+        ]
+
+    def __str__(self) -> str:
+        return (
+            f"{self.staff.name} @ {self.station.name} — "
+            f"{self.get_weekday_display()} {self.start_time}-{self.end_time}"
+        )
+
+    def clean(self) -> None:
+        from django.core.exceptions import ValidationError
+
+        if self.start_time and self.end_time and self.start_time >= self.end_time:
+            raise ValidationError(_("ساعت پایان باید بعد از ساعت شروع باشه."))
+
+    @property
+    def duration_minutes(self) -> int:
+        if not (self.start_time and self.end_time):
+            return 0
+        from datetime import datetime
+
+        start = datetime.combine(datetime.today(), self.start_time)
+        end = datetime.combine(datetime.today(), self.end_time)
+        if end < start:
+            end += timedelta(days=1)
+        return int((end - start).total_seconds() / 60)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ۸. Service
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -484,8 +528,8 @@ class Service(TimeStampedModel):
     خدمت.
 
     ─── نکته: ───
-    - station اجباریه (هر خدمت توی یه ایستگاه)
-    - staff_members: مسئول‌های این خدمت (چند به چند)
+    - station اجباریه
+    - مسئول‌ها از طریق StaffService (نه M2M)
     - duration برای محاسبه اسلات‌ها
     """
 
@@ -501,13 +545,7 @@ class Service(TimeStampedModel):
         related_name="services",
         verbose_name=_("ایستگاه"),
     )
-    staff_members = models.ManyToManyField(
-        Staff,
-        related_name="services",
-        blank=True,
-        verbose_name=_("مسئول‌ها"),
-        help_text=_("کارمندهایی که این خدمت رو انجام میدن"),
-    )
+    # ─── ❌ staff_members حذف شد ───
     name = models.CharField(_("نام خدمت"), max_length=100)
     duration = models.PositiveIntegerField(
         _("مدت (دقیقه)"),
@@ -539,16 +577,89 @@ class Service(TimeStampedModel):
 
     @property
     def staff_count(self) -> int:
-        return self.staff_members.filter(is_active=True).count()
+        """تعداد کارمندهای فعال (از StaffService)."""
+        return self.staff_services.filter(
+            is_active=True,
+            staff__is_active=True,
+        ).count()
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۸. WorkingHours
+#  ۹. StaffService (خدمات per-staff)
+# ═══════════════════════════════════════════════════════════════
+
+
+class StaffService(TimeStampedModel):
+    """
+    خدمتی که یه کارمند توی یه اتاق ارائه می‌ده.
+
+    ─── نکته: ───
+    - یه کارمند می‌تونه توی چند اتاق، خدمات مختلف بده
+    - قیمت per-staff per-station می‌تونه متفاوت باشه
+    - اگه price=0 باشه، از Service.price استفاده میشه
+    """
+
+    staff = models.ForeignKey(
+        Staff,
+        on_delete=models.CASCADE,
+        related_name="staff_services",
+        verbose_name=_("کارمند"),
+    )
+    service = models.ForeignKey(
+        Service,
+        on_delete=models.CASCADE,
+        related_name="staff_services",
+        verbose_name=_("خدمت"),
+    )
+    station = models.ForeignKey(
+        Station,
+        on_delete=models.CASCADE,
+        related_name="staff_services",
+        verbose_name=_("اتاق"),
+    )
+    price = models.PositiveIntegerField(
+        _("قیمت اختصاصی (تومان)"),
+        default=0,
+        help_text=_("اگه ۰ باشه، از قیمت پیش‌فرض خدمت استفاده میشه."),
+    )
+    is_active = models.BooleanField(_("فعال"), default=True)
+
+    class Meta:
+        verbose_name = _("خدمت کارمند")
+        verbose_name_plural = _("خدمات کارمند")
+        ordering = ["station", "service", "staff"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["staff", "service", "station"],
+                name="unique_staff_service_station",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["service", "is_active"]),
+            models.Index(fields=["staff", "is_active"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.staff.name} — {self.service.name} @ {self.station.name}"
+
+    @property
+    def effective_price(self) -> int:
+        if self.price > 0:
+            return self.price
+        return self.service.price
+
+    @property
+    def effective_duration(self) -> int:
+        return self.service.duration
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ۱۰. WorkingHours (فقط برای کسب‌وکار شخصی)
 # ═══════════════════════════════════════════════════════════════
 
 
 class WorkingHours(TimeStampedModel):
-    """برنامه هفتگی کسب‌وکار."""
+    """برنامه هفتگی کسب‌وکار (فقط برای شخصی)."""
 
     business = models.ForeignKey(
         Business,
@@ -598,7 +709,7 @@ class WorkingHours(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۹. DayOff
+#  ۱۱. DayOff
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -645,7 +756,7 @@ class DayOff(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۱۰. SpecialWorkingHours
+#  ۱۲. SpecialWorkingHours
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -692,15 +803,9 @@ class SpecialWorkingHours(TimeStampedModel):
         target = self.station.name if self.station else self.business.name
         return f"{target} — {self.date}"
 
-    def clean(self) -> None:
-        from django.core.exceptions import ValidationError
-
-        if self.start_time and self.end_time and self.start_time >= self.end_time:
-            raise ValidationError(_("ساعت پایان باید بعد از ساعت شروع باشه."))
-
 
 # ═══════════════════════════════════════════════════════════════
-#  ۱۱. Break
+#  ۱۳. Break
 # ═══════════════════════════════════════════════════════════════
 
 
@@ -735,22 +840,15 @@ class Break(TimeStampedModel):
         target = self.station.name if self.station else self.business.name
         return f"{target} — {self.start_time} تا {self.end_time}"
 
-    def clean(self) -> None:
-        from django.core.exceptions import ValidationError
-
-        if self.start_time and self.end_time and self.start_time >= self.end_time:
-            raise ValidationError(_("ساعت پایان باید بعد از ساعت شروع باشه."))
-
 
 # ═══════════════════════════════════════════════════════════════
-#  ۱۲. ProfileChangeRequest
+#  ۱۴. ProfileChangeRequest
 # ═══════════════════════════════════════════════════════════════
 
 
 class ProfileChangeRequest(TimeStampedModel):
     """درخواست تغییر فیلدهای حساس پروفایل."""
 
-    # ─── Generic FK ───
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,
@@ -759,7 +857,6 @@ class ProfileChangeRequest(TimeStampedModel):
     object_id = models.PositiveIntegerField(_("شناسه"))
     content_object = GenericForeignKey("content_type", "object_id")
 
-    # ─── کوت (برای دسترسی سریع) ───
     business = models.ForeignKey(
         Business,
         on_delete=models.CASCADE,
@@ -769,17 +866,13 @@ class ProfileChangeRequest(TimeStampedModel):
         blank=True,
     )
 
-    # ─── فیلد مورد تغییر ───
     field_name = models.CharField(
         _("فیلد مورد تغییر"),
         max_length=30,
         choices=ProfileField.choices,
     )
 
-    # ─── مقدار قدیم ───
     old_value_text = models.TextField(_("مقدار قبلی (متنی)"), blank=True)
-
-    # ─── مقدار جدید ───
     new_value_text = models.TextField(_("مقدار جدید (متنی)"), blank=True)
     new_value_file = models.FileField(
         _("فایل جدید"),
@@ -788,7 +881,6 @@ class ProfileChangeRequest(TimeStampedModel):
         null=True,
     )
 
-    # ─── وضعیت ───
     status = models.CharField(
         _("وضعیت"),
         max_length=10,
@@ -798,7 +890,6 @@ class ProfileChangeRequest(TimeStampedModel):
     )
     rejection_reason = models.TextField(_("دلیل رد"), blank=True)
 
-    # ─── تاریخ بررسی ───
     reviewed_at = models.DateTimeField(_("تاریخ بررسی"), null=True, blank=True)
     reviewed_by = models.ForeignKey(
         User,
@@ -809,7 +900,6 @@ class ProfileChangeRequest(TimeStampedModel):
         verbose_name=_("بررسی‌کننده"),
     )
 
-    # ─── Manager ───
     objects = ProfileChangeRequestManager()
 
     class Meta:
@@ -835,7 +925,6 @@ class ProfileChangeRequest(TimeStampedModel):
         return self.status == ChangeRequestStatus.PENDING
 
     def approve(self, reviewed_by: User | None = None) -> None:
-        """تأیید و اعمال درخواست."""
         from .services.changes import apply_change_request
 
         apply_change_request(self)
@@ -846,7 +935,6 @@ class ProfileChangeRequest(TimeStampedModel):
         self.save(update_fields=["status", "reviewed_at", "reviewed_by"])
 
     def reject(self, reason: str, reviewed_by: User | None = None) -> None:
-        """رد درخواست با دلیل."""
         if self.new_value_file:
             self.new_value_file.delete(save=False)
 
@@ -865,21 +953,12 @@ class ProfileChangeRequest(TimeStampedModel):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  ۱۳. Payment
+#  ۱۵. Payment
 # ═══════════════════════════════════════════════════════════════
 
 
 class Payment(TimeStampedModel):
-    """
-    پرداخت برای خرید پلن.
-
-    ─── جریان: ───
-    1. کسب‌وکار پلن رو انتخاب می‌کنه
-    2. مبلغ رو کارت به کارت می‌کنه
-    3. رسید رو آپلود می‌کنه
-    4. ادمین تأیید/رد می‌کنه
-    5. بعد از تأیید → پلن فعال میشه
-    """
+    """پرداخت برای خرید پلن."""
 
     business = models.ForeignKey(
         Business,
@@ -890,12 +969,12 @@ class Payment(TimeStampedModel):
     plan = models.ForeignKey(
         Plan,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="payments",
         verbose_name=_("پلن"),
     )
-    amount = models.PositiveIntegerField(
-        _("مبلغ (تومان)"),
-    )
+    amount = models.PositiveIntegerField(_("مبلغ (تومان)"))
     method = models.CharField(
         _("روش پرداخت"),
         max_length=20,
@@ -910,7 +989,6 @@ class Payment(TimeStampedModel):
         db_index=True,
     )
 
-    # ─── رسید ───
     receipt = models.ImageField(
         _("عکس رسید"),
         upload_to="payments/receipts/",
@@ -922,27 +1000,12 @@ class Payment(TimeStampedModel):
         _("کد پیگیری"),
         max_length=50,
         blank=True,
-        help_text=_("شماره پیگیری تراکنش"),
     )
 
-    # ─── یادداشت ───
-    customer_note = models.TextField(
-        _("یادداشت مشتری"),
-        blank=True,
-        max_length=500,
-    )
-    admin_note = models.TextField(
-        _("یادداشت ادمین"),
-        blank=True,
-        max_length=500,
-    )
+    customer_note = models.TextField(_("یادداشت مشتری"), blank=True, max_length=500)
+    admin_note = models.TextField(_("یادداشت ادمین"), blank=True, max_length=500)
 
-    # ─── تاریخ بررسی ───
-    reviewed_at = models.DateTimeField(
-        _("تاریخ بررسی"),
-        null=True,
-        blank=True,
-    )
+    reviewed_at = models.DateTimeField(_("تاریخ بررسی"), null=True, blank=True)
     reviewed_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -974,35 +1037,28 @@ class Payment(TimeStampedModel):
         return self.status == PaymentStatus.APPROVED
 
     def approve(self, reviewed_by: User | None = None, note: str = "") -> None:
-        """
-        تأیید پرداخت → فعال‌سازی پلن.
+        """تأیید پرداخت → فعال‌سازی پلن."""
+        if not self.plan:
+            raise ValueError("پلن تعیین نشده.")
 
-        ─── منطق: ───
-        1. اگه پلن فعلی هنوز معتبره → اضافه کن به تاریخ انقضا
-        2. وگرنه → از امروز شروع کن
-        """
         business = self.business
         today = timezone.localdate()
         duration = self.plan.duration_days
 
-        # ─── محاسبه‌ی تاریخ انقضای جدید ───
         if (
-            business.plan_id == self.plan_id
+            business.plan
+            and business.plan.pk == self.plan.pk
             and business.plan_expires_at
             and business.plan_expires_at >= today
         ):
-            # ─── تمدید: از تاریخ انقضای فعلی ───
             new_expiry = business.plan_expires_at + timedelta(days=duration)
         else:
-            # ─── پلن جدید: از امروز ───
             new_expiry = today + timedelta(days=duration)
 
-        # ─── آپدیت Business ───
         business.plan = self.plan
         business.plan_expires_at = new_expiry
         business.save(update_fields=["plan", "plan_expires_at"])
 
-        # ─── آپدیت Payment ───
         self.status = PaymentStatus.APPROVED
         self.reviewed_at = timezone.now()
         self.reviewed_by = reviewed_by
@@ -1018,7 +1074,6 @@ class Payment(TimeStampedModel):
         )
 
     def reject(self, reason: str, reviewed_by: User | None = None) -> None:
-        """رد پرداخت."""
         self.status = PaymentStatus.REJECTED
         self.admin_note = reason
         self.reviewed_at = timezone.now()

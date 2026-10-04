@@ -1,14 +1,10 @@
 """
 Admin configuration برای business.
 
-شامل admin برای ۱۱ مدل با inline و actions.
-
-─── پاک‌سازی: ───
-- BusinessOwnerProfile → توی accounts/admin.py هست
+شامل admin برای همه‌ی مدل‌ها با inline و actions.
 """
 
 from django.contrib import admin
-from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.translation import gettext_lazy as _
 
@@ -27,6 +23,8 @@ from .models import (
     Service,
     SpecialWorkingHours,
     Staff,
+    StaffSchedule,
+    StaffService,
     Station,
     TargetAudience,
     WorkingHours,
@@ -38,19 +36,7 @@ from .models import (
 # ═══════════════════════════════════════════════════════════════
 
 
-class StationInline(admin.TabularInline):
-    """Inline ایستگاه‌ها توی Business."""
-
-    model = Station
-    extra = 0
-    fields = ("name", "order", "is_active")
-    ordering = ("order",)
-    show_change_link = True
-
-
 class StaffInline(admin.TabularInline):
-    """Inline کارمندها توی Business."""
-
     model = Staff
     extra = 0
     fields = ("name", "phone", "is_owner", "is_active", "order")
@@ -58,15 +44,85 @@ class StaffInline(admin.TabularInline):
     show_change_link = True
 
 
-class ServiceInline(admin.TabularInline):
-    """Inline خدمات توی Business."""
+class StationInline(admin.TabularInline):
+    model = Station
+    extra = 0
+    fields = ("name", "order", "is_active")
+    ordering = ("order",)
+    show_change_link = True
 
+
+class ServiceInline(admin.TabularInline):
     model = Service
     extra = 0
     fields = ("name", "station", "duration", "price", "is_active")
     ordering = ("order", "name")
     show_change_link = True
     autocomplete_fields = ("station",)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  Plan
+# ═══════════════════════════════════════════════════════════════
+
+
+@admin.register(Plan)
+class PlanAdmin(admin.ModelAdmin):
+    list_display = (
+        "icon",
+        "name",
+        "slug",
+        "price_display",
+        "duration_days",
+        "features_count",
+        "order",
+        "is_active",
+        "is_paid",
+        "has_pro_features",
+    )
+    list_editable = ("order", "is_active")
+    list_filter = ("is_active", "is_paid", "has_pro_features")
+    search_fields = ("name", "slug", "description")
+    ordering = ("order", "price")
+    readonly_fields = ("created_at", "updated_at")
+
+    fieldsets = (
+        (
+            _("اطلاعات پایه"),
+            {"fields": ("slug", "name", "icon", "description", "order")},
+        ),
+        (_("قیمت و مدت"), {"fields": ("price", "duration_days")}),
+        (
+            _("ویژگی‌ها"),
+            {
+                "fields": ("features",),
+                "description": _(
+                    'لیست ویژگی‌ها به صورت JSON. مثال: ["نوبت‌دهی آنلاین", "QR Code"]'
+                ),
+            },
+        ),
+        (
+            _("وضعیت"),
+            {"fields": ("is_active", "is_paid", "has_pro_features")},
+        ),
+        (
+            _("تاریخ‌ها"),
+            {
+                "fields": ("created_at", "updated_at"),
+                "classes": ("collapse",),
+            },
+        ),
+    )
+
+    @admin.display(description=_("قیمت"))
+    def price_display(self, obj: Plan) -> str:
+        if not obj.is_paid or obj.price == 0:
+            return "رایگان"
+        return f"{obj.price:,} تومان"
+
+    @admin.display(description=_("تعداد ویژگی"))
+    def features_count(self, obj: Plan) -> int:
+        return obj.features_count
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -91,94 +147,7 @@ class ActivityTypeAdmin(admin.ModelAdmin):
     search_fields = ("name", "slug")
     ordering = ("is_salon", "order")
 
-# ═══════════════════════════════════════════════════════════════
-#  Plan
-# ═══════════════════════════════════════════════════════════════
 
-
-@admin.register(Plan)
-class PlanAdmin(admin.ModelAdmin):
-    """Admin برای Plan."""
-
-    list_display = (
-        "icon",
-        "name",
-        "slug",
-        "price_display",
-        "duration_days",
-        "features_count",
-        "order",
-        "is_active",
-        "is_paid",
-        "has_pro_features",
-    )
-    list_editable = ("order", "is_active")
-    list_filter = ("is_active", "is_paid", "has_pro_features")
-    search_fields = ("name", "slug", "description")
-    ordering = ("order", "price")
-    readonly_fields = ("created_at", "updated_at")
-
-    fieldsets = (
-        (
-            _("اطلاعات پایه"),
-            {
-                "fields": (
-                    "slug",
-                    "name",
-                    "icon",
-                    "description",
-                    "order",
-                )
-            },
-        ),
-        (
-            _("قیمت و مدت"),
-            {
-                "fields": (
-                    "price",
-                    "duration_days",
-                )
-            },
-        ),
-        (
-            _("ویژگی‌ها"),
-            {
-                "fields": ("features",),
-                "description": _(
-                    "لیست ویژگی‌ها رو به صورت JSON بنویس. مثال: "
-                    '["نوبت‌دهی آنلاین", "QR Code"]'
-                ),
-            },
-        ),
-        (
-            _("وضعیت"),
-            {
-                "fields": (
-                    "is_active",
-                    "is_paid",
-                    "has_pro_features",
-                )
-            },
-        ),
-        (
-            _("تاریخ‌ها"),
-            {
-                "fields": ("created_at", "updated_at"),
-                "classes": ("collapse",),
-            },
-        ),
-    )
-
-    @admin.display(description=_("قیمت"))
-    def price_display(self, obj: Plan) -> str:
-        if not obj.is_paid or obj.price == 0:
-            return "رایگان"
-        return f"{obj.price:,} تومان"
-
-    @admin.display(description=_("تعداد ویژگی"))
-    def features_count(self, obj: Plan) -> int:
-        return obj.features_count
-    
 # ═══════════════════════════════════════════════════════════════
 #  Business
 # ═══════════════════════════════════════════════════════════════
@@ -186,8 +155,6 @@ class PlanAdmin(admin.ModelAdmin):
 
 @admin.register(Business)
 class BusinessAdmin(admin.ModelAdmin):
-    """Admin برای Business."""
-
     list_display = (
         "name",
         "owner_link",
@@ -202,18 +169,12 @@ class BusinessAdmin(admin.ModelAdmin):
         "is_active",
         "is_rejected",
         "is_salon",
-        "plan",
+        "plan__slug",
         "activity_type",
         "target_audience",
         "created_at",
     )
-    search_fields = (
-        "name",
-        "slug",
-        "owner__phone",
-        "region",
-        "owner_name",
-    )
+    search_fields = ("name", "slug", "owner__phone", "region", "owner_name")
     readonly_fields = (
         "slug",
         "created_at",
@@ -223,11 +184,7 @@ class BusinessAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     inlines = [StaffInline, StationInline, ServiceInline]
     list_per_page = 30
-    list_select_related = (
-        "owner",
-        "activity_type",
-        "target_audience",
-    )
+    list_select_related = ("owner", "activity_type", "target_audience", "plan")
     actions = ["approve_businesses", "reject_businesses"]
 
     fieldsets = (
@@ -263,13 +220,7 @@ class BusinessAdmin(admin.ModelAdmin):
         ),
         (
             _("پلن"),
-            {
-                "fields": (
-                    "plan",
-                    "plan_expires_at",
-                    "plan_days_left_display",
-                )
-            },
+            {"fields": ("plan", "plan_expires_at", "plan_days_left_display")},
         ),
         (_("تنظیمات"), {"fields": ("auto_confirm",)}),
         (
@@ -281,29 +232,19 @@ class BusinessAdmin(admin.ModelAdmin):
         ),
     )
 
-    # ═══════════════════════════════════════════════════════════
-    #  Columns
-    # ═══════════════════════════════════════════════════════════
-
     @admin.display(description=_("صاحب"))
     def owner_link(self, obj: Business) -> str:
-        """لینک به کاربر صاحب."""
         url = f"/admin/accounts/user/{obj.owner.pk}/change/"
-        return format_html(
-            '<a href="{}">{}</a>',
-            url,
-            obj.owner.phone,
-        )
+        return format_html('<a href="{}">{}</a>', url, obj.owner.phone)
 
     @admin.display(description=_("پلن"))
     def plan_badge(self, obj: Business) -> str:
-        """پلن با رنگ."""
-        colors = {
-            Plan.TRIAL: ("#6B7280", "🎁 تست"),
-            Plan.BASIC: ("#3B82F6", "⭐ پایه"),
-            Plan.PRO: ("#B08D57", "💎 ویژه"),
-        }
-        color, label = colors.get(obj.plan, ("#666", obj.plan))
+        if not obj.plan:
+            return "—"
+        color = "#B08D57" if obj.plan.has_pro_features else (
+            "#3B82F6" if obj.plan.is_paid else "#6B7280"
+        )
+        label = f"{obj.plan.icon} {obj.plan.name}"
         return format_html(
             '<span style="background:{}; color:white; padding:3px 10px; '
             'border-radius:12px; font-weight:bold; font-size:11px;">{}</span>',
@@ -313,7 +254,6 @@ class BusinessAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("وضعیت"))
     def status_badge(self, obj: Business) -> str:
-        """وضعیت با رنگ."""
         if obj.is_rejected:
             color, label = "#EF4444", "❌ رد شده"
         elif obj.is_active:
@@ -329,7 +269,6 @@ class BusinessAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("درخواست‌های معلق"))
     def pending_changes_badge(self, obj: Business) -> str:
-        """تعداد درخواست‌های معلق."""
         count = obj.pending_changes_count
         if count > 0:
             return format_html(
@@ -341,7 +280,6 @@ class BusinessAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("روزهای باقی‌مانده"))
     def plan_days_left_display(self, obj: Business) -> str:
-        """نمایش روزهای باقی‌مانده‌ی پلن."""
         if not obj.plan_expires_at:
             return "—"
         days = obj.plan_days_left
@@ -349,32 +287,23 @@ class BusinessAdmin(admin.ModelAdmin):
             return "—"
         if days < 0:
             return format_html(
-                '<span style="color:#EF4444; font-weight:bold;">'
-                '{} روز گذشته</span>',
+                '<span style="color:#EF4444; font-weight:bold;">{} روز گذشته</span>',
                 abs(days),
             )
         if days <= 7:
             return format_html(
-                '<span style="color:#EAB308; font-weight:bold;">'
-                '{} روز مونده</span>',
+                '<span style="color:#EAB308; font-weight:bold;">{} روز مونده</span>',
                 days,
             )
         return format_html(
-            '<span style="color:#22C55E; font-weight:bold;">'
-            '{} روز مونده</span>',
+            '<span style="color:#22C55E; font-weight:bold;">{} روز مونده</span>',
             days,
         )
-
-    # ═══════════════════════════════════════════════════════════
-    #  Actions
-    # ═══════════════════════════════════════════════════════════
 
     @admin.action(description=_("✅ تأیید انتخاب‌شده‌ها"))
     def approve_businesses(self, request, queryset):
         count = queryset.update(
-            is_active=True,
-            is_rejected=False,
-            rejection_reason="",
+            is_active=True, is_rejected=False, rejection_reason=""
         )
         self.message_user(request, f"✅ {count} کسب‌وکار تأیید شد.")
 
@@ -423,6 +352,74 @@ class StaffAdmin(admin.ModelAdmin):
 
 
 # ═══════════════════════════════════════════════════════════════
+#  Station
+# ═══════════════════════════════════════════════════════════════
+
+
+@admin.register(Station)
+class StationAdmin(admin.ModelAdmin):
+    list_display = (
+        "name",
+        "business",
+        "services_count_display",
+        "order",
+        "is_active",
+    )
+    list_editable = ("order", "is_active")
+    list_filter = ("is_active", "business")
+    search_fields = ("name", "business__name")
+    ordering = ("business", "order")
+    autocomplete_fields = ("business",)
+    list_select_related = ("business",)
+    # ─── ❌ filter_horizontal = ("staff_members",) حذف شد ───
+
+    fieldsets = (
+        (
+            _("اطلاعات ایستگاه"),
+            {"fields": ("business", "name", "order", "is_active")},
+        ),
+        # ─── ❌ fieldset «کارمندها» حذف شد ───
+    )
+
+    @admin.display(description=_("تعداد خدمات"))
+    def services_count_display(self, obj):
+        return obj.services_count
+
+
+# ═══════════════════════════════════════════════════════════════
+#  StaffSchedule
+# ═══════════════════════════════════════════════════════════════
+
+
+@admin.register(StaffSchedule)
+class StaffScheduleAdmin(admin.ModelAdmin):
+    list_display = (
+        "staff",
+        "station",
+        "get_weekday_display",
+        "start_time",
+        "end_time",
+        "is_active",
+    )
+    list_editable = ("is_active",)
+    list_filter = ("weekday", "is_active", "station", "staff__business")
+    search_fields = ("staff__name", "station__name", "staff__business__name")
+    ordering = ("station", "weekday", "start_time")
+    autocomplete_fields = ("staff", "station")
+    list_select_related = ("staff", "station")
+    list_per_page = 50
+
+    fieldsets = (
+        (
+            _("شیفت"),
+            {"fields": ("staff", "station", "weekday")},
+        ),
+        (_("ساعت"), {"fields": ("start_time", "end_time")}),
+        (_("وضعیت"), {"fields": ("is_active",)}),
+    )
+
+
+# ═══════════════════════════════════════════════════════════════
 #  Service
 # ═══════════════════════════════════════════════════════════════
 
@@ -444,21 +441,15 @@ class ServiceAdmin(admin.ModelAdmin):
     search_fields = ("name", "business__name", "station__name")
     ordering = ("business", "order")
     autocomplete_fields = ("business", "station")
-    filter_horizontal = ("staff_members",)
     list_select_related = ("business", "station")
+    # ─── ❌ filter_horizontal = ("staff_members",) حذف شد ───
 
     fieldsets = (
         (
             _("اطلاعات خدمت"),
             {"fields": ("business", "station", "name", "duration", "price")},
         ),
-        (
-            _("مسئول‌ها"),
-            {
-                "fields": ("staff_members",),
-                "description": _("کارمندهایی که این خدمت رو انجام می‌دن"),
-            },
-        ),
+        # ─── ❌ fieldset «مسئول‌ها» حذف شد ───
         (
             _("وضعیت"),
             {"fields": ("is_active", "order")},
@@ -471,46 +462,38 @@ class ServiceAdmin(admin.ModelAdmin):
 
 
 # ═══════════════════════════════════════════════════════════════
-#  Station
+#  StaffService
 # ═══════════════════════════════════════════════════════════════
 
 
-@admin.register(Station)
-class StationAdmin(admin.ModelAdmin):
+@admin.register(StaffService)
+class StaffServiceAdmin(admin.ModelAdmin):
     list_display = (
-        "name",
-        "business",
-        "services_count_display",
-        "order",
+        "staff",
+        "service",
+        "station",
+        "effective_price_display",
         "is_active",
     )
-    list_editable = ("order", "is_active")
-    list_filter = ("is_active", "business")
-    search_fields = ("name", "business__name")
-    ordering = ("business", "order")
-    autocomplete_fields = ("business",)
-    filter_horizontal = ("staff_members",)
-    list_select_related = ("business",)
-
-    fieldsets = (
-        (
-            _("اطلاعات ایستگاه"),
-            {"fields": ("business", "name", "order", "is_active")},
-        ),
-        (
-            _("کارمندها"),
-            {
-                "fields": ("staff_members",),
-                "description": _(
-                    "کارمندهایی که توی این ایستگاه کار می‌کنن (اختیاری)"
-                ),
-            },
-        ),
+    list_editable = ("is_active",)
+    list_filter = ("is_active", "station", "service__business")
+    search_fields = (
+        "staff__name",
+        "service__name",
+        "station__name",
+        "staff__business__name",
     )
+    ordering = ("station", "service", "staff")
+    autocomplete_fields = ("staff", "service", "station")
+    list_select_related = ("staff", "service", "station")
+    list_per_page = 50
 
-    @admin.display(description=_("تعداد خدمات"))
-    def services_count_display(self, obj):
-        return obj.services_count
+    @admin.display(description=_("قیمت"))
+    def effective_price_display(self, obj: StaffService) -> str:
+        price = obj.effective_price
+        if price == 0:
+            return "—"
+        return f"{price:,} تومان"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -585,8 +568,6 @@ class BreakAdmin(admin.ModelAdmin):
 
 @admin.register(ProfileChangeRequest)
 class ProfileChangeRequestAdmin(admin.ModelAdmin):
-    """Admin برای ProfileChangeRequest."""
-
     list_display = (
         "business",
         "field_name_badge",
@@ -629,16 +610,12 @@ class ProfileChangeRequestAdmin(admin.ModelAdmin):
         (_("دلیل رد"), {"fields": ("rejection_reason",)}),
     )
 
-    # ═══════════════════════════════════════════════════════════
-    #  Columns
-    # ═══════════════════════════════════════════════════════════
-
     @admin.display(description=_("فیلد"))
-    def field_name_badge(self, obj: ProfileChangeRequest) -> str:
+    def field_name_badge(self, obj):
         return obj.get_field_name_display()
 
     @admin.display(description=_("وضعیت"))
-    def status_badge(self, obj: ProfileChangeRequest) -> str:
+    def status_badge(self, obj):
         colors = {
             ChangeRequestStatus.PENDING: ("#EAB308", "⏳ در انتظار"),
             ChangeRequestStatus.APPROVED: ("#22C55E", "✅ تأیید شده"),
@@ -653,14 +630,12 @@ class ProfileChangeRequestAdmin(admin.ModelAdmin):
         )
 
     @admin.display(description=_("مقدار قبلی"))
-    def old_value_display(self, obj: ProfileChangeRequest) -> str:
-        """نمایش مقدار قبلی (متن یا عکس)."""
+    def old_value_display(self, obj):
         if obj.is_file_field:
             if obj.old_value_text:
                 return format_html(
                     '<a href="{}" target="_blank">'
-                    '<img src="{}" style="max-width:200px; max-height:200px; '
-                    'border-radius:8px; border:2px solid #ddd;"></a>',
+                    '<img src="{}" style="max-width:200px; max-height:200px; border-radius:8px;"></a>',
                     obj.old_value_text,
                     obj.old_value_text,
                 )
@@ -668,23 +643,17 @@ class ProfileChangeRequestAdmin(admin.ModelAdmin):
         return obj.old_value_text or "— خالی"
 
     @admin.display(description=_("مقدار جدید"))
-    def new_value_display(self, obj: ProfileChangeRequest) -> str:
-        """نمایش مقدار جدید (متن یا عکس)."""
+    def new_value_display(self, obj):
         if obj.is_file_field:
             if obj.new_value_file:
                 return format_html(
                     '<a href="{}" target="_blank">'
-                    '<img src="{}" style="max-width:200px; max-height:200px; '
-                    'border-radius:8px; border:2px solid #22C55E;"></a>',
+                    '<img src="{}" style="max-width:200px; max-height:200px; border-radius:8px; border:2px solid #22C55E;"></a>',
                     obj.new_value_file.url,
                     obj.new_value_file.url,
                 )
             return "🗑️ حذف"
         return obj.new_value_text or "— خالی"
-
-    # ═══════════════════════════════════════════════════════════
-    #  Actions
-    # ═══════════════════════════════════════════════════════════
 
     @admin.action(description=_("✅ تأیید و اعمال انتخاب‌شده‌ها"))
     def approve_changes(self, request, queryset):
@@ -692,16 +661,13 @@ class ProfileChangeRequestAdmin(admin.ModelAdmin):
         for req in queryset.filter(status=ChangeRequestStatus.PENDING):
             req.approve(reviewed_by=request.user)
             count += 1
-        self.message_user(request, f"✅ {count} درخواست تأیید و اعمال شد.")
+        self.message_user(request, f"✅ {count} درخواست تأیید شد.")
 
     @admin.action(description=_("❌ رد انتخاب‌شده‌ها"))
     def reject_changes(self, request, queryset):
         count = 0
         for req in queryset.filter(status=ChangeRequestStatus.PENDING):
-            req.reject(
-                reason="به‌صورت گروهی رد شد",
-                reviewed_by=request.user,
-            )
+            req.reject(reason="به‌صورت گروهی رد شد", reviewed_by=request.user)
             count += 1
         self.message_user(request, f"❌ {count} درخواست رد شد.")
 
@@ -713,8 +679,6 @@ class ProfileChangeRequestAdmin(admin.ModelAdmin):
 
 @admin.register(Payment)
 class PaymentAdmin(admin.ModelAdmin):
-    """Admin برای Payment."""
-
     list_display = (
         "business",
         "plan_badge",
@@ -724,7 +688,7 @@ class PaymentAdmin(admin.ModelAdmin):
         "created_at",
         "reviewed_at",
     )
-    list_filter = ("status", "plan", "method", "created_at")
+    list_filter = ("status", "plan__slug", "method", "created_at")
     search_fields = (
         "business__name",
         "tracking_code",
@@ -743,7 +707,7 @@ class PaymentAdmin(admin.ModelAdmin):
         "receipt_preview",
     )
     list_per_page = 30
-    list_select_related = ("business", "reviewed_by")
+    list_select_related = ("business", "plan", "reviewed_by")
     actions = ["approve_payments", "reject_payments"]
 
     fieldsets = (
@@ -772,10 +736,6 @@ class PaymentAdmin(admin.ModelAdmin):
         ),
     )
 
-    # ═══════════════════════════════════════════════════════════
-    #  Columns
-    # ═══════════════════════════════════════════════════════════
-
     @admin.display(description=_("پلن"))
     def plan_badge(self, obj: Payment) -> str:
         if not obj.plan:
@@ -803,42 +763,27 @@ class PaymentAdmin(admin.ModelAdmin):
 
     @admin.display(description=_("پیش‌نمایش رسید"))
     def receipt_preview(self, obj: Payment) -> str:
-        """نمایش رسید به‌صورت عکس."""
         if obj.receipt:
             return format_html(
                 '<a href="{}" target="_blank">'
-                '<img src="{}" style="max-width:400px; max-height:400px; '
-                'border-radius:8px; border:2px solid #ddd;"></a>',
+                '<img src="{}" style="max-width:400px; max-height:400px; border-radius:8px;"></a>',
                 obj.receipt.url,
                 obj.receipt.url,
             )
         return "—"
 
-    # ═══════════════════════════════════════════════════════════
-    #  Actions
-    # ═══════════════════════════════════════════════════════════
-
     @admin.action(description=_("✅ تأیید و فعال‌سازی پلن"))
     def approve_payments(self, request, queryset):
         count = 0
         for payment in queryset.filter(status=PaymentStatus.PENDING):
-            payment.approve(
-                reviewed_by=request.user,
-                note="تأیید گروهی",
-            )
+            payment.approve(reviewed_by=request.user, note="تأیید گروهی")
             count += 1
-        self.message_user(
-            request,
-            f"✅ {count} پرداخت تأیید و پلن فعال شد.",
-        )
+        self.message_user(request, f"✅ {count} پرداخت تأیید شد.")
 
     @admin.action(description=_("❌ رد پرداخت‌ها"))
     def reject_payments(self, request, queryset):
         count = 0
         for payment in queryset.filter(status=PaymentStatus.PENDING):
-            payment.reject(
-                reason="به‌صورت گروهی رد شد",
-                reviewed_by=request.user,
-            )
+            payment.reject(reason="به‌صورت گروهی رد شد", reviewed_by=request.user)
             count += 1
         self.message_user(request, f"❌ {count} پرداخت رد شد.")

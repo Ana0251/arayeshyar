@@ -4,6 +4,8 @@ URL configuration اپ business.
 
 from django.urls import path
 
+from apps.business.views.analytics import analytics
+
 from .views import (
     # Public
     business_profile_public,
@@ -51,6 +53,10 @@ from .views import (
     # Breaks
     delete_break,
     manage_breaks,
+    
+    delete_staff_schedule,
+    edit_staff_schedule, 
+    manage_staff_schedules,
 )
 
 app_name = "business"
@@ -208,5 +214,26 @@ urlpatterns = [
         "business/payments/<int:payment_id>/cancel/",
         cancel_payment,
         name="cancel_payment",
+    ),
+    
+    path("business/analytics/", analytics, name="analytics"),
+    
+    # ═══════════════════════════════════════════════════════════
+    #  Staff Schedules (شیفت کارمندها)
+    # ═══════════════════════════════════════════════════════════
+    path(
+        "business/staff-schedules/",
+        manage_staff_schedules,
+        name="manage_staff_schedules",
+    ),
+    path(
+        "business/staff-schedules/<int:schedule_id>/delete/",
+        delete_staff_schedule,
+        name="delete_staff_schedule",
+    ),
+    path(
+        "business/staff-schedules/<int:schedule_id>/edit/",
+        edit_staff_schedule,
+        name="edit_staff_schedule",
     ),
 ]

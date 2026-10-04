@@ -368,3 +368,60 @@ def get_revenue_by_day(
         daily_data[d]["count"] += 1
 
     return sorted(daily_data.values(), key=lambda x: x["date"])
+
+def get_golden_weekdays(
+    business: Business,
+    days: int = DEFAULT_ANALYTICS_DAYS,
+    top_n: int = GOLDEN_WEEKDAYS_TOP_N,
+) -> list[dict]:
+    """
+    روزهای طلایی — پرترافیک‌ترین روزهای هفته.
+
+    Returns:
+        لیست dict با کلیدها:
+        - weekday (0-6، شنبه=۰)
+        - name ("شنبه")
+        - count
+        - percentage
+        - is_golden
+    """
+    from apps.business.constants import Weekday
+
+    qs = _base_appointments_query(business, days)
+
+    # ─── شمارش به تفکیک روز هفته ───
+    counts_by_weekday: dict[int, int] = {i: 0 for i in range(7)}
+
+    for appt in qs.only("start_at"):
+        # ─── تبدیل به Tehran ───
+        local_dt = timezone.localtime(appt.start_at)
+        python_weekday = local_dt.weekday()
+        iranian_weekday = Weekday.from_python_weekday(python_weekday)
+        counts_by_weekday[iranian_weekday] += 1
+
+    if not any(counts_by_weekday.values()):
+        return []
+
+    max_count = max(counts_by_weekday.values())
+
+    # ─── برترها ───
+    top_weekdays = sorted(
+        counts_by_weekday.items(),
+        key=lambda x: x[1],
+        reverse=True,
+    )[:top_n]
+    top_weekday_set = {w for w, _ in top_weekdays}
+
+    # ─── ساخت نتیجه ───
+    result = []
+    for weekday_value, name in Weekday.choices:
+        count = counts_by_weekday.get(weekday_value, 0)
+        result.append({
+            "weekday": weekday_value,
+            "name": name,
+            "count": count,
+            "percentage": round(count / max_count * 100, 1) if max_count else 0,
+            "is_golden": weekday_value in top_weekday_set and count > 0,
+        })
+
+    return result

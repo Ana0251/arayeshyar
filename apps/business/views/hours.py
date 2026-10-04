@@ -1,5 +1,9 @@
 """
 Views مدیریت برنامه هفتگی.
+
+─── نکته: ───
+WorkingHours فقط برای کسب‌وکارهای شخصی (is_salon=False) استفاده میشه.
+برای سالن‌ها، از StaffSchedule (شیفت کارمندها) استفاده کن.
 """
 
 import logging
@@ -21,6 +25,26 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════
+#  Check: فقط شخصی
+# ═══════════════════════════════════════════════════════════════
+
+
+def _check_not_salon(business):
+    """
+    اگه کسب‌وکار سالن باشه، به شیفت‌ها redirect کن.
+
+    Returns:
+        HttpResponse اگه سالن بود، وگرنه None.
+    """
+    if business.is_salon:
+        messages.info(
+            _("سالن‌ها باید از «شیفت کارمندها» استفاده کنن، نه برنامه هفتگی."),
+        )
+        return redirect("business:manage_staff_schedules")
+    return None
+
+
+# ═══════════════════════════════════════════════════════════════
 #  Manage Hours
 # ═══════════════════════════════════════════════════════════════
 
@@ -28,8 +52,13 @@ logger = logging.getLogger(__name__)
 @business_required
 @require_http_methods(["GET", "POST"])
 def manage_hours(request: HttpRequest) -> HttpResponse:
-    """مدیریت برنامه هفتگی."""
+    """مدیریت برنامه هفتگی (فقط شخصی)."""
     business = request.user.business
+
+    # ─── اگه سالن باشه، redirect ───
+    redirect_response = _check_not_salon(business)
+    if redirect_response:
+        return redirect_response
 
     hours = business.working_hours.filter(
         station__isnull=True
@@ -42,7 +71,6 @@ def manage_hours(request: HttpRequest) -> HttpResponse:
             wh = form.save(commit=False)
             wh.business = business
 
-            # ─── چک تکراری: هر روز فقط یه برنامه ───
             if WorkingHours.objects.filter(
                 business=business,
                 weekday=wh.weekday,
@@ -114,6 +142,12 @@ def delete_working_hours(
 ) -> HttpResponse:
     """حذف برنامه هفتگی."""
     business = request.user.business
+
+    # ─── اگه سالن باشه، redirect ───
+    redirect_response = _check_not_salon(business)
+    if redirect_response:
+        return redirect_response
+
     wh = get_object_or_404(
         WorkingHours,
         id=hours_id,

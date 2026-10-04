@@ -12,7 +12,13 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods
 
-from apps.business.models import Business, Service, Staff, Station
+from apps.business.models import (
+    Business,
+    Service,
+    Staff,
+    StaffService,
+    Station,
+)
 from apps.business.selectors import get_business_by_slug
 from apps.customers.services import CustomerBusinessService
 
@@ -90,7 +96,7 @@ def _handle_booking_post(request: HttpRequest, business: Business) -> HttpRespon
                 is_active=True,
             ).first()
 
-        # ─── ذخیره‌ی نام مشتری (اگه عوض شده) ───
+        # ─── ذخیره‌ی نام مشتری ───
         customer = request.user
         new_name = (data.get("customer_name") or "").strip()
 
@@ -208,13 +214,25 @@ def _render_booking_page(
             .first()
         )
 
-    # ─── staff ───
+    # ═══════════════════════════════════════════════════════════
+    #  staff (از StaffService — نه M2M)
+    # ═══════════════════════════════════════════════════════════
     staff_members = []
     selected_staff = None
     if selected_service:
-        staff_members = list(
-            selected_service.staff_members.filter(is_active=True).order_by("order", "id")
+        staff_services = (
+            StaffService.objects.filter(
+                service=selected_service,
+                station=selected_service.station,
+                is_active=True,
+                staff__is_active=True,
+            )
+            .select_related("staff")
+            .order_by("staff__order", "staff__name")
         )
+
+        staff_members = [ss.staff for ss in staff_services]
+
         if selected_staff_id:
             selected_staff = next(
                 (s for s in staff_members if str(s.id) == str(selected_staff_id)),

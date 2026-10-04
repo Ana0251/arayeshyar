@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+{% load jalali %}
+
+{% block title %}کسب‌وکارهای من — آرایشیار{% endblock %}
+
+{% block content %}
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">💼 کسب‌وکارهای من</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            کسب‌وکارهایی که ازشون نوبت گرفتی یا ذخیره کردی.
+        </p>
+    </div>
+
+    {% if businesses %}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for business in businesses %}
+                <div class="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition">
+                    {# ─── Header ─── #}
+                    <div class="bg-primary text-white p-5">
+                        <div class="flex items-center gap-4">
+                            {% if business.avatar %}
+                                <img src="{{ business.avatar.url }}"
+                                     alt="{{ business.name }}"
+                                     class="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-accent">
+                            {% else %}
+                                <div class="w-14 h-14 rounded-full bg-accent text-primary flex items-center justify-center text-xl font-bold shrink-0 leading-none">
+                                    {{ business.name|slice:":1" }}
+                                </div>
+                            {% endif %}
+
+                            <div class="flex-1 min-w-0">
+                                <h2 class="font-bold text-lg truncate">{{ business.name }}</h2>
+                                <p class="text-xs text-white/70 mt-0.5">
+                                    {% if business.activity_type.icon %}{{ business.activity_type.icon }}{% endif %}
+                                    {{ business.activity_type.name }}
+                                </p>
+                                <p class="text-xs text-white/60 mt-0.5 truncate">
+                                    📍 {{ business.region }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {# ─── Body ─── #}
+                    <div class="p-4">
+                        <div class="flex items-center justify-between gap-2 mb-3 text-xs text-darktext/60">
+                            <span>
+                                📅 آخرین بازدید:
+                                {% if business.last_visit_at %}
+                                    {{ business.last_visit_at|to_jalali }}
+                                {% else %}
+                                    —
+                                {% endif %}
+                            </span>
+                            <span>🔁 {{ business.visits_count }} نوبت</span>
+                        </div>
+
+                        {# ─── دکمه‌ها ─── #}
+                        <div class="grid grid-cols-2 gap-2">
+                            <a href="{% url 'booking:book' business.slug %}"
+                               class="bg-accent text-primary font-bold py-2.5 rounded-xl hover:opacity-90 transition text-center text-sm">
+                                📅 رزرو نوبت
+                            </a>
+
+                            <a href="{% url 'business:public_profile' business.slug %}"
+                               class="bg-white text-primary font-bold py-2.5 rounded-xl hover:bg-cream transition border border-black/10 text-center text-sm">
+                                👁️ پروفایل
+                            </a>
+                        </div>
+
+                        {# ─── حذف از لیست ─── #}
+                        <form method="post"
+                              action="{% url 'customers:remove_business' business.id %}"
+                              class="mt-2"
+                              onsubmit="return confirm('«{{ business.name }}» از لیستت حذف بشه؟')">
+                            {% csrf_token %}
+                            <button type="submit"
+                                    class="w-full text-xs text-danger hover:bg-danger/10 py-2 rounded-lg transition font-bold">
+                                🗑️ حذف از لیست
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="bg-white rounded-2xl shadow-md p-10 text-center">
+            <div class="text-4xl mb-3">💼</div>
+            <h2 class="font-bold text-primary text-lg mb-2">
+                هنوز کسب‌وکاری توی لیستت نیست
+            </h2>
+            <p class="text-sm text-darktext/60 mb-5">
+                وقتی از یه کسب‌وکار نوبت بگیری، خودکار اینجا اضافه میشه.
+            </p>
+            <a href="{% url 'core:home' %}"
+               class="inline-block bg-accent text-primary font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
+                🏠 بازگشت به خانه
+            </a>
+        </div>
+    {% endif %}
+
+{% endblock %}

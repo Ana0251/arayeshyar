@@ -183,3 +183,41 @@ def get_all_change_requests(
         qs = qs.filter(status=status)
 
     return qs
+
+def get_analytics_data(
+    business,
+    days: int = 30,
+) -> dict:
+    """
+    داده‌ی کامل آمار برای یه کسب‌وکار.
+
+    ─── شامل: ───
+    - overall: آمار کلی
+    - golden_hours: ساعات طلایی
+    - golden_weekdays: روزهای طلایی
+    - service_stats: خدمات برتر
+    - top_customers: مشتریان برتر
+    - revenue_by_day: درآمد روزانه
+
+    Args:
+        business: کسب‌وکار
+        days: بازه‌ی روز (پیش‌فرض ۳۰)
+    """
+    from apps.analytics.selectors import (
+        get_customer_stats,
+        get_golden_hours,
+        get_golden_weekdays,
+        get_overall_stats,
+        get_revenue_by_day,
+        get_service_stats,
+    )
+
+    return {
+        "overall": get_overall_stats(business, days=days),
+        "golden_hours": get_golden_hours(business, days=days),
+        "golden_weekdays": get_golden_weekdays(business, days=days),
+        "service_stats": get_service_stats(business, days=days),
+        "top_customers": get_customer_stats(business, days=days),
+        "revenue_by_day": get_revenue_by_day(business, days=days),
+        "days": days,
+    }

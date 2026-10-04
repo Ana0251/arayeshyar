@@ -5,7 +5,7 @@
 
 {% block content %}
 
-    {# سلام #}
+    {# ─── سلام ─── #}
     <div class="bg-primary text-white rounded-2xl shadow-md p-5 mb-5">
         <div class="flex items-center gap-4">
             <div class="w-16 h-16 rounded-full bg-accent text-primary flex items-center justify-center text-2xl font-bold shrink-0 leading-none select-none">
@@ -20,13 +20,68 @@
         </div>
     </div>
 
-    {# پیام موقت — بعداً پر میشه #}
-    <div class="bg-white rounded-2xl shadow-md p-8 text-center">
-        <div class="text-4xl mb-3">🎉</div>
-        <h2 class="font-bold text-primary text-lg mb-2">حساب شما آماده‌ست!</h2>
-        <p class="text-sm text-darktext/60">
-            بخش‌های بعدی به‌زودی اضافه میشن.
-        </p>
+    {# ═══════════════ کسب‌وکارهای من ═══════════════ #}
+    {% if my_businesses %}
+        <div class="mb-5">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="font-bold text-primary text-lg">💼 کسب‌وکارهای من</h2>
+                <a href="{% url 'customers:my_businesses' %}"
+                   class="text-xs text-accent font-bold hover:underline">
+                    مشاهده همه →
+                </a>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {% for business in my_businesses|slice:":4" %}
+                    <div class="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
+                        {% if business.avatar %}
+                            <img src="{{ business.avatar.url }}"
+                                 alt="{{ business.name }}"
+                                 class="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-accent/20">
+                        {% else %}
+                            <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold shrink-0">
+                                {{ business.name|slice:":1" }}
+                            </div>
+                        {% endif %}
+
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-bold text-primary truncate">{{ business.name }}</h3>
+                            <p class="text-xs text-darktext/60 truncate">📍 {{ business.region }}</p>
+                        </div>
+
+                        <a href="{% url 'booking:book' business.slug %}"
+                           class="bg-accent text-primary font-bold px-3 py-2 rounded-lg hover:opacity-90 transition text-xs shrink-0">
+                            رزرو
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    {% else %}
+        {# ─── Empty State ─── #}
+        <div class="bg-white rounded-2xl shadow-md p-10 text-center mb-5">
+            <div class="text-4xl mb-3">💼</div>
+            <h2 class="font-bold text-primary text-lg mb-2">
+                هنوز کسب‌وکاری توی لیستت نیست
+            </h2>
+            <p class="text-sm text-darktext/60">
+                وقتی از یه کسب‌وکار نوبت بگیری، خودکار اینجا اضافه میشه.
+            </p>
+        </div>
+    {% endif %}
+
+    {# ─── راهنما ─── #}
+    <div class="bg-accent/10 border-2 border-accent/30 rounded-2xl p-5">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl shrink-0">💡</div>
+            <div class="flex-1 text-sm text-darktext/80 leading-relaxed">
+                <strong class="text-accent">چطور از یه کسب‌وکار جدید نوبت بگیرم؟</strong>
+                <p class="mt-2">
+                    کافیه لینک اختصاصی کسب‌وکار رو ازشون بگیری یا QR Code رو اسکن کنی.
+                    بعد از اولین نوبت، خودکار به این لیست اضافه میشه.
+                </p>
+            </div>
+        </div>
     </div>
 
 {% endblock %}

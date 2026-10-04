@@ -20,7 +20,7 @@ register_converter(UnicodeSlugConverter, "uslug")
 
 
 def empty_events_json(request):
-    """فایل خالی events.json — برای persian-datepicker-element."""
+    """فایل خالی events.json."""
     return JsonResponse([], safe=False)
 
 
@@ -54,6 +54,7 @@ urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
     path("", include("apps.business.urls")),
     path("", include("apps.booking.urls")),
+    path("", include("apps.customers.urls")),   # ← جدید
 
     # ─── PWA ───
     path("manifest.webmanifest", manifest_view, name="manifest"),
@@ -87,4 +88,3 @@ if settings.DEBUG:
 
     if "debug_toolbar" in settings.INSTALLED_APPS:
         urlpatterns += [path("__debug__/", include("debug_toolbar.urls"))]
-
