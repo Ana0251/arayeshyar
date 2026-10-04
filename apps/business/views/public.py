@@ -58,24 +58,28 @@ def business_profile_public(
 
 @require_GET
 def qr_code(request: HttpRequest, slug: str) -> HttpResponse:
-    """
-    تولید QR Code PNG.
-
-    ─── نکته: ───
-    QR به URL پروفایل عمومی اشاره می‌کنه.
-    """
+    """تولید QR Code PNG با cache."""
     import io
-
     import qrcode
+    from django.core.cache import cache
 
+    # ─── Cache check ───
+    cache_key = f"qr:business:{slug}"
+    cached = cache.get(cache_key)
+
+    if cached:
+        response = HttpResponse(cached, content_type="image/png")
+        response["Cache-Control"] = "public, max-age=86400"
+        response["X-Cache"] = "HIT"
+        return response
+
+    # ─── ساخت QR ───
     business = get_business_by_slug(slug)
     if not business:
         return HttpResponse(status=404)
 
-    # ─── URL پروفایل ───
     profile_url = request.build_absolute_uri(f"/b/{business.slug}/")
 
-    # ─── ساخت QR ───
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -87,13 +91,16 @@ def qr_code(request: HttpRequest, slug: str) -> HttpResponse:
 
     img = qr.make_image(fill_color="#2C3E50", back_color="white")
 
-    # ─── خروجی PNG ───
     buffer = io.BytesIO()
     img.save(buffer, format="PNG")
-    buffer.seek(0)
+    content = buffer.getvalue()
 
-    response = HttpResponse(buffer, content_type="image/png")
-    response["Cache-Control"] = "public, max-age=86400"  # ۱ روز
+    # ─── Cache ۱ روز ───
+    cache.set(cache_key, content, timeout=86400)
+
+    response = HttpResponse(content, content_type="image/png")
+    response["Cache-Control"] = "public, max-age=86400"
+    response["X-Cache"] = "MISS"
     return response
 
 
