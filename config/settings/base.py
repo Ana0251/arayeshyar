@@ -46,7 +46,10 @@ env = environ.Env(
     LOG_LEVEL=(str, "INFO"),
     PAYMENT_CARD_NUMBER=(str, "6219-8619-0627-4690"),
     PAYMENT_CARD_OWNER=(str, "آرایشیار"),
-    PAYMENT_CARD_BANK=(str, "بانک ملی"),
+    PAYMENT_CARD_BANK=(str, "بانک سامان"),
+    SUPPORT_PHONE=(str, "09127516317"),
+    SUPPORT_WHATSAPP=(str, "989127516317"),
+    SUPPORT_TELEGRAM=(str, "arayeshyar_support"),
 )
 
 env_file = BASE_DIR / ".env"
@@ -106,6 +109,7 @@ LOCAL_APPS = [
     "apps.customers",
     "apps.notifications",
     "apps.analytics",
+    "apps.support",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -417,3 +421,11 @@ LOGGING = {
 # ═══════════════════════════════════════════════════════════════
 
 DJANGO_HTMX_HTTP_RESPONSE_ERRORS = True
+
+# ═══════════════════════════════════════════════════════════════
+#  Support Info
+# ═══════════════════════════════════════════════════════════════
+
+SUPPORT_PHONE = env("SUPPORT_PHONE")
+SUPPORT_WHATSAPP = env("SUPPORT_WHATSAPP")
+SUPPORT_TELEGRAM = env("SUPPORT_TELEGRAM")

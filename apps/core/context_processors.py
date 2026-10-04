@@ -67,3 +67,15 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "site_name": getattr(settings, "SITE_NAME", "آرایشیار"),
         "site_domain": getattr(settings, "SITE_DOMAIN", "localhost"),
     }
+    
+def site_context(request: HttpRequest) -> dict[str, Any]:
+    """اطلاعات سایت + راه‌های ارتباطی."""
+    from django.conf import settings
+
+    return {
+        "site_name": getattr(settings, "SITE_NAME", "آرایشیار"),
+        "site_domain": getattr(settings, "SITE_DOMAIN", "localhost"),
+        "site_whatsapp": getattr(settings, "SUPPORT_WHATSAPP", ""),
+        "site_telegram": getattr(settings, "SUPPORT_TELEGRAM", ""),
+        "site_phone": getattr(settings, "SUPPORT_PHONE", ""),
+    }

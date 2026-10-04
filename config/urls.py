@@ -10,7 +10,6 @@ from django.urls import include, path, register_converter, re_path
 
 from apps.core.converters import UnicodeSlugConverter
 
-# ─── ثبت converter سفارشی ───
 register_converter(UnicodeSlugConverter, "uslug")
 
 
@@ -20,12 +19,10 @@ register_converter(UnicodeSlugConverter, "uslug")
 
 
 def empty_events_json(request):
-    """فایل خالی events.json."""
     return JsonResponse([], safe=False)
 
 
 def manifest_view(request):
-    """سرو manifest.webmanifest از root."""
     path = settings.BASE_DIR / "static" / "manifest.webmanifest"
     return FileResponse(
         open(path, "rb"),
@@ -34,7 +31,6 @@ def manifest_view(request):
 
 
 def service_worker_view(request):
-    """سرو sw.js از root."""
     path = settings.BASE_DIR / "static" / "sw.js"
     response = FileResponse(
         open(path, "rb"),
@@ -54,13 +50,12 @@ urlpatterns = [
     path("auth/", include("apps.accounts.urls")),
     path("", include("apps.business.urls")),
     path("", include("apps.booking.urls")),
-    path("", include("apps.customers.urls")),   # ← جدید
+    path("", include("apps.customers.urls")),
+    path("", include("apps.support.urls")),   # ← جدید
 
-    # ─── PWA ───
     path("manifest.webmanifest", manifest_view, name="manifest"),
     path("sw.js", service_worker_view, name="sw"),
 
-    # ─── events.json ───
     re_path(
         r"^.*data/events\.json$",
         empty_events_json,
@@ -69,19 +64,11 @@ urlpatterns = [
 ]
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Error Handlers
-# ═══════════════════════════════════════════════════════════════
-
 handler400 = "apps.core.views.error_400"
 handler403 = "apps.core.views.error_403"
 handler404 = "apps.core.views.error_404"
 handler500 = "apps.core.views.error_500"
 
-
-# ═══════════════════════════════════════════════════════════════
-#  Media (dev only)
-# ═══════════════════════════════════════════════════════════════
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

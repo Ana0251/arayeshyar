@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block title %}تیکت جدید — آرایشیار{% endblock %}
+
+{% block content %}
+
+    <a href="{% url 'support:my_tickets' %}"
+       class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">
+        ← بازگشت به تیکت‌ها
+    </a>
+
+    <div class="mb-5">
+        <h1 class="text-2xl font-bold text-primary">📝 تیکت جدید</h1>
+        <p class="text-sm text-darktext/60 mt-1">
+            مشکل یا سوالت رو برامون بفرست.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-primary text-white px-5 py-3">
+            <h2 class="font-bold">📋 اطلاعات تیکت</h2>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="p-5 space-y-4">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                    {% for error in form.non_field_errors %}<p>⚠️ {{ error }}</p>{% endfor %}
+                </div>
+            {% endif %}
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">
+                    {{ form.subject.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.subject }}
+                {% if form.subject.errors %}
+                    <p class="text-danger text-xs mt-1">{{ form.subject.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.category.label }}</label>
+                    {{ form.category }}
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.priority.label }}</label>
+                    {{ form.priority }}
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">
+                    {{ form.message.label }} <span class="text-danger">*</span>
+                </label>
+                {{ form.message }}
+                {% if form.message.errors %}
+                    <p class="text-danger text-xs mt-1">{{ form.message.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.attachment.label }}</label>
+                {{ form.attachment }}
+                {% if form.attachment.errors %}
+                    <p class="text-danger text-xs mt-1">{{ form.attachment.errors.0 }}</p>
+                {% endif %}
+                <p class="text-xs text-darktext/50 mt-1">JPG, PNG, WebP, PDF — حداکثر ۵ مگابایت</p>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 transition">
+                📩 ارسال تیکت
+            </button>
+        </form>
+    </div>
+
+    {# ─── راه ارتباطی سریع ─── #}
+    <div class="bg-accent/10 border-2 border-accent/30 rounded-2xl p-5 mt-5">
+        <div class="flex items-start gap-3">
+            <div class="text-2xl shrink-0">💬</div>
+            <div class="flex-1 text-sm text-darktext/80 leading-relaxed">
+                <strong class="text-accent">نیاز به پاسخ سریع‌تر داری؟</strong>
+                <p class="mt-2 mb-3">می‌تونی از راه‌های زیر هم با ما در ارتباط باشی:</p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {% if site_whatsapp %}
+                        <a href="https://wa.me/{{ site_whatsapp }}?text=سلام، از آرایشیار سوال دارم"
+                           target="_blank" rel="noopener"
+                           class="flex items-center justify-center gap-2 bg-[#25D366]/10 text-[#25D366] font-bold py-3 rounded-xl hover:bg-[#25D366]/20 transition">
+                            <span>💬</span> واتساپ
+                        </a>
+                    {% endif %}
+
+                    {% if site_telegram %}
+                        <a href="https://t.me/{{ site_telegram }}"
+                           target="_blank" rel="noopener"
+                           class="flex items-center justify-center gap-2 bg-[#0088cc]/10 text-[#0088cc] font-bold py-3 rounded-xl hover:bg-[#0088cc]/20 transition">
+                            <span>✈️</span> تلگرام
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% endblock %}
