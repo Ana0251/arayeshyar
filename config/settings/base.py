@@ -35,6 +35,8 @@ env = environ.Env(
     SMS_BACKEND=(str, "apps.notifications.backends.console.ConsoleSMSBackend"),
     KAVENEGAR_API_KEY=(str, ""),
     KAVENEGAR_SENDER=(str, ""),
+    TELEGRAM_BOT_TOKEN=(str, ""),
+    TELEGRAM_CHAT_ID=(str, ""),
     OTP_LENGTH=(int, 6),
     OTP_EXPIRY_MINUTES=(int, 2),
     OTP_MAX_ATTEMPTS=(int, 5),
@@ -325,6 +327,13 @@ OTP_RATE_LIMIT_PER_HOUR = env("OTP_RATE_LIMIT_PER_HOUR")
 SMS_BACKEND = env("SMS_BACKEND")
 KAVENEGAR_API_KEY = env("KAVENEGAR_API_KEY")
 KAVENEGAR_SENDER = env("KAVENEGAR_SENDER")
+
+# ═══════════════════════════════════════════════════════════════
+#  Telegram (برای SMS Backend در dev)
+# ═══════════════════════════════════════════════════════════════
+
+TELEGRAM_BOT_TOKEN = env.str("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_CHAT_ID = env.str("TELEGRAM_CHAT_ID", default="")
 
 # ═══════════════════════════════════════════════════════════════
 #  سایر
