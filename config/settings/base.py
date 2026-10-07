@@ -30,7 +30,8 @@ env = environ.Env(
     LANGUAGE_CODE=(str, "fa-ir"),
     TIME_ZONE=(str, "Asia/Tehran"),
     SITE_ID=(int, 1),
-    SITE_DOMAIN=(str, "localhost:8000"),
+    SITE_DOMAIN=(str, "http://localhost:8000"),
+    CANONICAL_HOST=(str, ""),
     SITE_NAME=(str, "آرایشیار"),
     SMS_BACKEND=(str, "apps.notifications.backends.console.ConsoleSMSBackend"),
     KAVENEGAR_API_KEY=(str, ""),
@@ -126,6 +127,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "apps.core.middleware.CanonicalHostRedirectMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.locale.LocaleMiddleware",
@@ -301,6 +303,7 @@ MESSAGE_TAGS = {
 
 SITE_ID = env("SITE_ID")
 SITE_DOMAIN = env("SITE_DOMAIN")
+CANONICAL_HOST = env("CANONICAL_HOST")
 SITE_NAME = env("SITE_NAME")
 
 # ═══════════════════════════════════════════════════════════════

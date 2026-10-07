@@ -13,13 +13,13 @@
     <meta name="robots" content="{% block robots %}index,follow,max-image-preview:large{% endblock %}">
     {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
     <meta name="twitter:card" content="summary_large_image">
-    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <link rel="canonical" href="{% block canonical_url %}{{ canonical_url }}{% endblock %}">
     <meta property="og:site_name" content="آرایشیار">
     <meta property="og:locale" content="fa_IR">
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:title" content="{% block og_title %}آرایشیار | رزرو آنلاین خدمات زیبایی{% endblock %}">
     <meta property="og:description" content="{% block og_description %}رزرو آنلاین آرایشگر و سالن بدون تماس.{% endblock %}">
-    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    <meta property="og:url" content="{{ canonical_url }}">
     {% block og_image %}{% endblock %}
 
     {# PWA #}
