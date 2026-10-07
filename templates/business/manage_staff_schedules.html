@@ -12,8 +12,9 @@
 <div class="mb-5">
     <h1 class="text-2xl font-bold text-primary">⏰ شیفت کارمندها</h1>
     <p class="text-sm text-darktext/60 mt-1">
-        برای هر کارمند، ساعت کاری توی هر اتاق رو تعیین کن.
+        اینجا فقط ساعت حضور را تعیین می‌کنی. اتصال کارمند به خدمت و اتاق از بخش «کارمندها» انجام می‌شود.
     </p>
+    <a href="{% url 'business:manage_staff' %}" class="inline-flex mt-3 text-sm font-bold text-primary bg-primary/10 px-3 py-2 rounded-xl">👥 مدیریت کارمندها و خدمات</a>
 </div>
 
 {# ─── dropdown اتاق ─── #}
@@ -35,6 +36,7 @@
 <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
     <div class="bg-primary text-white px-5 py-3">
         <h2 class="font-bold">➕ افزودن شیفت برای «{{ selected_station.name }}»</h2>
+        <p class="text-xs text-white/70 mt-1">فقط کارمندهایی نمایش داده می‌شوند که حداقل یک خدمت فعال در این اتاق دارند.</p>
     </div>
 
     <form method="post" class="p-5 space-y-4">

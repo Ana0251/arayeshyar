@@ -38,6 +38,17 @@
                 </div>
             {% endif %}
 
+            {% if business.is_salon %}
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">اتاق / ایستگاه</label>
+                    {{ form.station }}
+                    <p class="text-xs text-darktext/50 mt-1">مشخص کن این خدمت در کدام اتاق ارائه می‌شود.</p>
+                    {% if form.station.errors %}
+                        <p class="text-danger text-xs mt-1">{{ form.station.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
             <div>
                 <label class="block text-sm font-bold text-darktext mb-1.5">نام خدمت</label>
                 {{ form.name }}

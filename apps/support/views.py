@@ -205,3 +205,25 @@ def close_ticket(request: HttpRequest, ticket_id: int) -> HttpResponse:
     messages.success(request, _("تیکت بسته شد."))
 
     return redirect("support:ticket_detail", ticket_id=ticket.pk)
+@require_http_methods(["GET", "POST"])
+def password_help(request: HttpRequest) -> HttpResponse:
+    """ثبت درخواست بازیابی رمز بدون نیاز به لاگین/OTP."""
+    from apps.accounts.models import User
+    from .forms import PasswordHelpForm
+    from .models import PasswordResetRequest
+    form=PasswordHelpForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        phone=form.cleaned_data["phone"]
+        # از ایجاد اسپم تکراری باز جلوگیری می‌کنیم.
+        existing=PasswordResetRequest.objects.filter(phone=phone,status="open").first()
+        if existing:
+            messages.info(request, _("درخواست بازیابی این شماره قبلاً ثبت شده و در صف بررسیه."))
+            return render(request,"support/password_help_done.html",{"request_obj":existing})
+        user=User.objects.filter(phone=phone).first()
+        obj=PasswordResetRequest.objects.create(
+            phone=phone, full_name=form.cleaned_data["full_name"].strip(),
+            note=form.cleaned_data.get("note","").strip(), user=user,
+        )
+        logger.info("Password reset request #%s for %s",obj.pk,phone)
+        return render(request,"support/password_help_done.html",{"request_obj":obj})
+    return render(request,"support/password_help.html",{"form":form})

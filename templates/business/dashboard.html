@@ -164,7 +164,19 @@
             <a href="{% url 'business:manage_stations' %}"
                class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
                 <div class="text-2xl mb-1">📍</div>
-                <div class="text-xs font-bold text-primary">ایستگاه‌ها</div>
+                <div class="text-xs font-bold text-primary">اتاق‌ها</div>
+            </a>
+
+            <a href="{% url 'business:manage_staff' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">👥</div>
+                <div class="text-xs font-bold text-primary">کارمندها</div>
+            </a>
+
+            <a href="{% url 'business:manage_hours' %}"
+               class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+                <div class="text-2xl mb-1">🗓️</div>
+                <div class="text-xs font-bold text-primary">ساعت کاری سالن</div>
             </a>
 
             <a href="{% url 'business:manage_staff_schedules' %}"
@@ -179,6 +191,12 @@
                 <div class="text-xs font-bold text-primary">برنامه هفتگی</div>
             </a>
         {% endif %}
+
+        <a href="{% url 'business:manage_customers' %}"
+           class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">
+            <div class="text-2xl mb-1">👥</div>
+            <div class="text-xs font-bold text-primary">مشتری‌ها</div>
+        </a>
 
         <a href="{% url 'business:manage_days_off' %}"
            class="bg-white rounded-xl shadow-sm p-3 text-center hover:shadow-md hover:bg-accent/5 transition">

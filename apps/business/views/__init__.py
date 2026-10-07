@@ -18,6 +18,7 @@ from .register import (
     register_start,
 )
 
+from .staff import manage_staff, edit_staff, toggle_staff
 from .staff_schedules import (
     delete_staff_schedule,
     edit_staff_schedule,
@@ -77,7 +78,11 @@ __all__ = [
     
     "analytics",
     
+    "manage_staff",
+    "edit_staff",
+    "toggle_staff",
     "manage_staff_schedules",
     "edit_staff_schedule", 
     "delete_staff_schedule",
 ]
+from .customers import manage_customers, customer_detail, toggle_customer_block

@@ -1,0 +1,81 @@
+<div class="bg-white rounded-2xl shadow-md p-5 sm:p-7">
+    <div class="flex items-start gap-4 mb-5 sm:mb-6">
+        <div class="w-10 h-10 rounded-xl bg-accent/10 text-accent flex items-center justify-center text-xl shrink-0">🔎</div>
+        <div>
+            <h2 class="font-bold text-primary text-lg">آرایشگرت رو با شماره پیدا کن</h2>
+            <p class="text-xs text-darktext/60 mt-1">شماره موبایل صاحب سالن یا آرایشگر رو وارد کن.</p>
+        </div>
+    </div>
+
+    <form method="get" action="{% url 'core:home' %}" class="flex flex-col sm:flex-row gap-3">
+        <label for="home-phone-search" class="sr-only">شماره موبایل آرایشگر یا سالن</label>
+        <input id="home-phone-search"
+               name="q"
+               value="{{ query|default:'' }}"
+               type="tel"
+               inputmode="numeric"
+               autocomplete="tel"
+               dir="ltr"
+               placeholder="09123456789"
+               class="flex-1 w-full rounded-xl border border-primary/10 bg-cream px-4 py-3.5 text-primary font-bold outline-none focus:border-accent focus:ring-2 focus:ring-accent/20">
+        <button type="submit"
+                class="bg-accent text-primary font-bold px-6 py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition shrink-0">
+            جست‌وجو
+        </button>
+    </form>
+
+    {% if search_error %}
+        <div class="mt-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-sm p-3">
+            {{ search_error }}
+        </div>
+    {% endif %}
+
+    {% if search_result %}
+        <div class="mt-5 sm:mt-6 border border-accent/30 rounded-2xl p-5 sm:p-6 bg-accent/5">
+            <div class="flex items-center gap-3">
+                {% if search_result.avatar %}
+                    <img src="{{ search_result.avatar.url }}" alt="{{ search_result.name }}"
+                         class="w-14 h-14 rounded-full object-cover ring-2 ring-accent/20 shrink-0">
+                {% else %}
+                    <div class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center font-bold text-xl shrink-0">
+                        {{ search_result.name|slice:":1" }}
+                    </div>
+                {% endif %}
+
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <h3 class="font-bold text-primary truncate">{{ search_result.name }}</h3>
+                        {% if search_result.is_salon %}
+                            <span class="text-[10px] bg-primary/10 text-primary rounded-full px-2 py-1">سالن</span>
+                        {% else %}
+                            <span class="text-[10px] bg-accent/10 text-accent rounded-full px-2 py-1">آرایشگر</span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-darktext/60 mt-1">{{ search_result.activity_type.name }}{% if search_result.region %} · {{ search_result.region }}{% endif %}</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mt-5">
+                <a href="{% url 'business:public_profile' search_result.slug %}"
+                   class="text-center border border-primary/10 bg-white text-primary font-bold py-2.5 rounded-xl hover:bg-cream transition text-sm">
+                    مشاهده پروفایل
+                </a>
+                <a href="{% url 'booking:book' search_result.slug %}"
+                   class="text-center bg-accent text-primary font-bold py-2.5 rounded-xl hover:opacity-90 transition text-sm">
+                    رزرو نوبت
+                </a>
+            </div>
+
+            {% if user.is_authenticated and user.is_customer and not search_is_saved %}
+                <form method="post" action="{% url 'customers:add_business' search_result.id %}" class="mt-2">
+                    {% csrf_token %}
+                    <button class="w-full bg-primary text-white font-bold py-2.5 rounded-xl hover:opacity-90 transition text-sm">
+                        ⭐ ذخیره در آرایشگرهای من
+                    </button>
+                </form>
+            {% elif user.is_authenticated and user.is_customer and search_is_saved %}
+                <div class="mt-2 text-center text-xs font-bold text-success bg-success/10 rounded-xl py-2.5">✓ از قبل در لیستت ذخیره شده</div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

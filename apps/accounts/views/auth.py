@@ -1,315 +1,144 @@
-"""
-Views احراز هویت.
-
-شامل:
-- login_phone  → مرحله ۱: گرفتن شماره
-- login_otp    → مرحله ۲: تأیید کد
-- resend_otp   → ارسال مجدد
-- logout_view  → خروج
-"""
-
-import logging
-
+"""ورود با شماره موبایل و رمز عبور + ساخت حساب اولیه صاحب کسب‌وکار."""
 from django.contrib import messages
-from django.contrib.auth import login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import redirect, render
-from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods, require_POST
 
-from apps.core.utils.phone import mask_phone
+from apps.core.utils.requests import get_client_ip
+from ..constants import Role
+from ..forms import BusinessSignupForm, CustomerSignupForm, PhonePasswordLoginForm, ChangePasswordForm
+from ..models import CustomerProfile, User
 
-from ..forms import LoginOTPForm, LoginPhoneForm
-from ..models import User
-from ..services import (
-    OTPCooldownError,
-    OTPError,
-    OTPInvalidError,
-    OTPMaxAttemptsError,
-    OTPRateLimitError,
-    send_otp,
-    verify_otp,
-)
-
-logger = logging.getLogger(__name__)
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Constants
-# ═══════════════════════════════════════════════════════════════
-
-SESSION_PHONE_KEY = "auth_pending_phone"
 SESSION_NEXT_KEY = "auth_next_url"
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Login Phone — مرحله ۱
-# ═══════════════════════════════════════════════════════════════
+def _safe_next(request):
+    value = request.GET.get("next") or request.POST.get("next")
+    if value and url_has_allowed_host_and_scheme(value, {request.get_host()}, require_https=request.is_secure()):
+        request.session[SESSION_NEXT_KEY] = value
+        return value
+    return request.session.get(SESSION_NEXT_KEY)
+
+
+def _intent_from_next(next_url):
+    return "business" if next_url and next_url.startswith("/register") else "login"
 
 
 @require_http_methods(["GET", "POST"])
-def login_phone(request: HttpRequest) -> HttpResponse:
-    """
-    مرحله ۱: گرفتن شماره موبایل.
-
-    ─── GET: ───
-    نمایش فرم
-
-    ─── POST: ───
-    1. اعتبارسنجی فرم
-    2. ارسال OTP
-    3. ذخیره‌ی phone در session
-    4. redirect به login_otp
-    """
-    # ─── اگه لاگینه، redirect ───
+def login_view(request: HttpRequest) -> HttpResponse:
+    next_url = _safe_next(request)
     if request.user.is_authenticated:
         return _redirect_logged_in_user(request)
 
-    # ─── ذخیره‌ی next_url از ?next= یا referer ───
-    next_url = request.GET.get("next") or request.POST.get("next")
-    if next_url:
-        request.session[SESSION_NEXT_KEY] = next_url
-
-    if request.method == "POST":
-        form = LoginPhoneForm(request.POST)
-
-        if form.is_valid():
-            phone = form.cleaned_data["phone"]
-
-            try:
-                send_otp(phone, request=request)
-
-                # ─── ذخیره در session ───
-                request.session[SESSION_PHONE_KEY] = phone
-                request.session.modified = True
-
-                logger.info(f"OTP sent to {phone}")
-
-                messages.success(
-                    request,
-                    _("کد ورود به شماره %(phone)s ارسال شد.") % {
-                        "phone": phone
-                    },
-                )
-                return redirect("accounts:login_otp")
-
-            except OTPCooldownError as exc:
-                messages.warning(request, str(exc))
-            except OTPRateLimitError as exc:
-                messages.error(request, str(exc))
-            except OTPError as exc:
-                messages.error(request, str(exc))
-            except Exception:
-                logger.exception(f"Failed to send OTP to {phone}")
-                messages.error(
-                    request,
-                    _("خطا در ارسال کد. لطفاً دوباره امتحان کنید."),
-                )
+    form = PhonePasswordLoginForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = authenticate(request, username=form.cleaned_data["phone"], password=form.cleaned_data["password"])
+        if user is None:
+            messages.error(request, _("شماره موبایل یا رمز عبور اشتباهه."))
+        elif not user.is_active:
+            messages.error(request, _("این حساب غیرفعاله. با پشتیبانی تماس بگیر."))
         else:
-            # ─── خطاهای فرم توی template نمایش داده میشن ───
-            pass
-    else:
-        form = LoginPhoneForm()
+            login(request, user)
+            user.last_login_ip = get_client_ip(request)
+            user.save(update_fields=["last_login_ip"])
+            messages.success(request, _("خوش اومدی! ✅"))
+            return _redirect_logged_in_user(request)
 
-    return render(
-        request,
-        "accounts/login_phone.html",
-        {"form": form},
-    )
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Login OTP — مرحله ۲
-# ═══════════════════════════════════════════════════════════════
+    return render(request, "accounts/login.html", {
+        "form": form,
+        "auth_intent": _intent_from_next(next_url),
+        "next_url": next_url or "",
+    })
 
 
 @require_http_methods(["GET", "POST"])
-def login_otp(request: HttpRequest) -> HttpResponse:
-    """
-    مرحله ۲: تأیید کد ۶ رقمی.
-
-    ─── چرا این view؟ ───
-    کاربر شماره رو وارد کرده، OTP فرستاده شده.
-    حالا باید کد رو وارد کنه.
-
-    ─── نکته: ───
-    phone از session میاد، نه از URL.
-    """
-    # ─── اگه لاگینه، redirect ───
+def register_customer_account(request: HttpRequest) -> HttpResponse:
+    """ثبت‌نام مستقل مشتری با موبایل و رمز؛ ایمیل اختیاری است."""
+    next_url = _safe_next(request)
     if request.user.is_authenticated:
         return _redirect_logged_in_user(request)
 
-    # ─── اگه شماره توی session نیست، برگرد به مرحله ۱ ───
-    phone = request.session.get(SESSION_PHONE_KEY)
-    if not phone:
-        messages.error(
-            request,
-            _("لطفاً اول شماره موبایلت رو وارد کن."),
+    form = CustomerSignupForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = User.objects.create_user(
+            phone=form.cleaned_data["phone"],
+            password=form.cleaned_data["password"],
+            email=form.cleaned_data.get("email"),
+            role=Role.CUSTOMER,
+            is_active=True,
         )
-        return redirect("accounts:login_phone")
+        profile, profile_created = CustomerProfile.objects.get_or_create(user=user)
+        full_name = form.cleaned_data["full_name"].strip()
+        if profile.full_name != full_name:
+            profile.full_name = full_name
+            profile.save(update_fields=["full_name", "updated_at"])
+        user.last_login_ip = get_client_ip(request)
+        user.save(update_fields=["last_login_ip"])
+        login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+        request.session.set_expiry(60 * 60 * 24 * 30)
+        messages.success(request, _("حسابت ساخته شد. خوش اومدی! ✅"))
+        return _redirect_logged_in_user(request)
 
-    if request.method == "POST":
-        form = LoginOTPForm(request.POST)
-
-        if form.is_valid():
-            code = form.cleaned_data["code"]
-
-            try:
-                # ─── تأیید OTP ───
-                verify_otp(phone, code)
-
-                # ─── پیدا یا ساخت کاربر ───
-                user, created = User.objects.get_or_create(
-                    phone=phone,
-                    defaults={
-                        "role": "customer",
-                        "is_active": True,
-                    },
-                )
-
-                if not user.is_active:
-                    messages.error(
-                        request,
-                        _("حساب شما غیرفعاله. با پشتیبانی تماس بگیرید."),
-                    )
-                    return redirect("accounts:login_phone")
-
-                # ─── لاگین ───
-                login(
-                    request,
-                    user,
-                    backend="apps.accounts.backends.OTPBackend",
-                )
-
-                # ─── IP ───
-                user.last_login_ip = _get_client_ip(request)
-                user.save(update_fields=["last_login_ip"])
-
-                # ─── پاک کردن session ───
-                next_url = request.session.pop(SESSION_NEXT_KEY, None)
-                request.session.pop(SESSION_PHONE_KEY, None)
-
-                logger.info(f"User {phone} logged in")
-
-                if created:
-                    messages.success(
-                        request,
-                        _("خوش آمدی! حساب کاربریت ساخته شد. ✅"),
-                    )
-                else:
-                    messages.success(
-                        request,
-                        _("خوش آمدی %(name)s! ✅")
-                        % {"name": user.display_name},
-                    )
-
-                # ─── redirect ───
-                if next_url:
-                    return redirect(next_url)
-
-                # ─── redirect بر اساس نقش ───
-                if user.is_business_owner:
-                    return redirect("business:dashboard")
-                return redirect("core:home")
-
-            except OTPMaxAttemptsError as exc:
-                messages.error(request, str(exc))
-                return redirect("accounts:login_phone")
-
-            except OTPInvalidError as exc:
-                messages.error(request, str(exc))
-                # ─── فرم رو با خطا نمایش بده ───
-
-            except Exception:
-                logger.exception(f"OTP verification failed for {phone}")
-                messages.error(
-                    request,
-                    _("خطای غیرمنتظره. لطفاً دوباره امتحان کنید."),
-                )
-    else:
-        form = LoginOTPForm()
-
-    return render(
-        request,
-        "accounts/login_otp.html",
-        {
-            "form": form,
-            "phone": phone,
-            "phone_masked": mask_phone(phone),
-        },
-    )
+    return render(request, "accounts/register_customer.html", {
+        "form": form,
+        "next_url": next_url or "",
+    })
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Resend OTP
-# ═══════════════════════════════════════════════════════════════
+@require_http_methods(["GET", "POST"])
+def register_business_account(request: HttpRequest) -> HttpResponse:
+    """فقط حساب ورود صاحب مجموعه را می‌سازد؛ ادامه اطلاعات در wizard کسب‌وکار است."""
+    if request.user.is_authenticated:
+        if hasattr(request.user, "business"):
+            return redirect("business:dashboard")
+        return redirect("business:register_start")
 
+    form = BusinessSignupForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        user = User.objects.create_user(
+            phone=form.cleaned_data["phone"],
+            password=form.cleaned_data["password"],
+            email=form.cleaned_data.get("email"),
+            role=Role.CUSTOMER,  # بعد از finalize ثبت کسب‌وکار به BUSINESS_OWNER تبدیل می‌شود.
+        )
+        user.last_login_ip = get_client_ip(request)
+        user.save(update_fields=["last_login_ip"])
+        login(request, user)
+        messages.success(request, _("حساب ساخته شد. حالا اطلاعات آرایشگر یا سالن رو تکمیل کن. ✅"))
+        return redirect("business:register_start")
 
-@require_POST
-def resend_otp(request: HttpRequest) -> HttpResponse:
-    """ارسال مجدد کد."""
-    phone = request.session.get(SESSION_PHONE_KEY)
-
-    if not phone:
-        messages.error(request, _("لطفاً اول شماره موبایلت رو وارد کن."))
-        return redirect("accounts:login_phone")
-
-    try:
-        send_otp(phone, request=request)
-        messages.success(request, _("کد جدید ارسال شد."))
-    except OTPCooldownError as exc:
-        messages.warning(request, str(exc))
-    except OTPRateLimitError as exc:
-        messages.error(request, str(exc))
-    except OTPError as exc:
-        messages.error(request, str(exc))
-    except Exception:
-        logger.exception(f"Failed to resend OTP to {phone}")
-        messages.error(request, _("خطا در ارسال کد. دوباره امتحان کنید."))
-
-    return redirect("accounts:login_otp")
-
-
-# ═══════════════════════════════════════════════════════════════
-#  Logout
-# ═══════════════════════════════════════════════════════════════
+    return render(request, "accounts/register_business.html", {"form": form})
 
 
 @require_POST
 def logout_view(request: HttpRequest) -> HttpResponse:
-    """خروج."""
     if request.user.is_authenticated:
-        logger.info(f"User {request.user.phone} logged out")
         logout(request)
-
     messages.success(request, _("با موفقیت خارج شدی."))
     return redirect("core:home")
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Helpers
-# ═══════════════════════════════════════════════════════════════
-
-
-def _redirect_logged_in_user(request: HttpRequest) -> HttpResponse:
-    """کاربر لاگین‌شده رو به جای مناسب بفرست."""
-    user = request.user
-
-    # ─── next_url ───
+def _redirect_logged_in_user(request):
     next_url = request.session.pop(SESSION_NEXT_KEY, None)
-    if next_url:
+    if next_url and url_has_allowed_host_and_scheme(next_url, {request.get_host()}, require_https=request.is_secure()):
         return redirect(next_url)
-
-    # ─── بر اساس نقش ───
-    if user.is_business_owner:
-        return redirect("business:dashboard")
-    return redirect("core:home")
+    return redirect("business:dashboard") if request.user.is_business_owner else redirect("core:home")
 
 
-def _get_client_ip(request: HttpRequest) -> str | None:
-    """گرفتن IP کاربر."""
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0].strip()
-    return request.META.get("REMOTE_ADDR")
+@require_http_methods(["GET", "POST"])
+def change_password(request: HttpRequest) -> HttpResponse:
+    if not request.user.is_authenticated:
+        return redirect(f"/accounts/login/?next={request.path}")
+
+    form = ChangePasswordForm(request.user, request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        request.user.set_password(form.cleaned_data["new_password"])
+        request.user.save(update_fields=["password"])
+        update_session_auth_hash(request, request.user)
+        messages.success(request, _("رمز عبور با موفقیت تغییر کرد. ✅"))
+        return redirect("accounts:change_password")
+
+    return render(request, "accounts/change_password.html", {"form": form})

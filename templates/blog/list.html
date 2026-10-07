@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}وبلاگ آرایشیار | راهنمای زیبایی و مراقبت{% endblock %}
+{% block meta_description %}مقاله‌های کاربردی درباره آرایش، زیبایی، مراقبت مو و پوست و انتخاب خدمات مناسب.{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{% url 'blog:list' %}{% endblock %}
+{% block content %}
+<section class="py-8 sm:py-12">
+  <div class="max-w-2xl mb-10"><span class="text-accent font-black">مجله آرایشیار</span><h1 class="text-3xl sm:text-4xl font-black text-primary mt-2">راهنماهای کاربردی زیبایی و مراقبت</h1><p class="text-darktext/60 mt-3 leading-8">محتوای ساده و کاربردی برای انتخاب بهتر خدمات و مراقبت بعد از آن.</p></div>
+  {% if posts %}<div class="grid md:grid-cols-2 gap-6">{% for post in posts %}<article class="bg-white rounded-3xl border border-black/5 overflow-hidden hover:shadow-lg transition">{% if post.featured_image %}<a href="{{ post.get_absolute_url }}"><img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-full h-52 object-cover" loading="lazy"></a>{% endif %}<div class="p-6">{% if post.category %}<span class="text-xs font-bold bg-cream text-primary px-2.5 py-1 rounded-lg">{{ post.category }}</span>{% endif %}<h2 class="text-xl font-black text-primary mt-3 leading-8"><a href="{{ post.get_absolute_url }}">{{ post.title }}</a></h2><p class="text-sm text-darktext/60 leading-7 mt-2">{{ post.excerpt|default:post.body|truncatechars:150 }}</p><a href="{{ post.get_absolute_url }}" class="inline-block mt-4 text-primary font-black">ادامه مطلب ←</a></div></article>{% endfor %}</div>{% else %}<div class="bg-white rounded-3xl border border-black/5 p-10 text-center text-darktext/50">اولین مقاله‌ها به‌زودی منتشر می‌شن.</div>{% endif %}
+</section>
+{% endblock %}

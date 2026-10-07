@@ -53,8 +53,16 @@ def edit_profile(request: HttpRequest) -> HttpResponse:
             data = {}
             files = {}
 
-            # ─── فیلدهای تغییر یافته ───
+            # ─── اطلاعات حساب (روی User ذخیره میشه، نه Business) ───
+            mobile_changed = "mobile" in form.changed_data
+            email_changed = "login_email" in form.changed_data
+            new_mobile = form.cleaned_data.get("mobile", "")
+            new_email = form.cleaned_data.get("login_email", "")
+
+            # ─── فیلدهای تغییر یافته کسب‌وکار ───
             for field_name in form.changed_data:
+                if field_name in {"login_email", "mobile"}:
+                    continue
                 data[field_name] = form.cleaned_data.get(field_name, "")
 
             # ─── فایل‌ها ───
@@ -64,12 +72,24 @@ def edit_profile(request: HttpRequest) -> HttpResponse:
                 files["avatar"] = request.FILES["avatar"]
 
             # ─── آپدیت ───
-            if data or files:
+            if data or files or mobile_changed or email_changed:
                 service = ProfileService(business)
                 result = service.update_profile(data=data, files=files)
 
                 instant = result["instant_changes"]
                 pending = result["pending_changes"]
+
+                user_fields = []
+                if mobile_changed:
+                    request.user.phone = new_mobile or None
+                    user_fields.append("phone")
+                    instant.append("mobile")
+                if email_changed:
+                    request.user.email = new_email or None
+                    user_fields.append("email")
+                    instant.append("email")
+                if user_fields:
+                    request.user.save(update_fields=user_fields)
 
                 # ─── پیام مناسب ───
                 if instant and pending:

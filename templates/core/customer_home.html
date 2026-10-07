@@ -4,84 +4,94 @@
 {% block title %}خانه — آرایشیار{% endblock %}
 
 {% block content %}
+<div class="space-y-8 sm:space-y-10 pb-8">
 
-    {# ─── سلام ─── #}
-    <div class="bg-primary text-white rounded-2xl shadow-md p-5 mb-5">
-        <div class="flex items-center gap-4">
-            <div class="w-16 h-16 rounded-full bg-accent text-primary flex items-center justify-center text-2xl font-bold shrink-0 leading-none select-none">
+    {# Hero مشتری #}
+    <section class="relative overflow-hidden bg-primary text-white rounded-2xl shadow-lg p-6 sm:p-8">
+        <div class="absolute -top-8 -left-8 w-24 h-24 rounded-full bg-accent/20"></div>
+        <div class="absolute -bottom-10 -right-10 w-32 h-32 rounded-full bg-white/10"></div>
+        <div class="relative flex items-center gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-accent text-primary flex items-center justify-center text-2xl font-bold shrink-0 shadow-md">
                 {{ user.display_name|slice:":1" }}
             </div>
             <div class="flex-1 min-w-0">
-                <h1 class="font-bold text-xl">سلام {{ user.display_name }}! 👋</h1>
-                <p class="text-sm text-white/70 mt-1">
-                    به آرایشیار خوش آمدی
-                </p>
+                <p class="text-xs text-white/70 mb-1">خوش اومدی 👋</p>
+                <h1 class="font-bold text-2xl truncate">{{ user.display_name }}</h1>
+                <p class="text-sm text-white/70 mt-2">آرایشگرت رو پیدا کن، ساعت خالی رو ببین و بدون تماس نوبت بگیر.</p>
             </div>
         </div>
-    </div>
+    </section>
 
-    {# ═══════════════ کسب‌وکارهای من ═══════════════ #}
-    {% if my_businesses %}
-        <div class="mb-5">
-            <div class="flex items-center justify-between mb-3">
-                <h2 class="font-bold text-primary text-lg">💼 کسب‌وکارهای من</h2>
-                <a href="{% url 'customers:my_businesses' %}"
-                   class="text-xs text-accent font-bold hover:underline">
-                    مشاهده همه →
-                </a>
+    {# جست‌وجوی سریع #}
+    {% include 'core/partials/_phone_search.html' %}
+
+    {# میانبرها #}
+    <section class="grid grid-cols-3 gap-3 sm:gap-4">
+        <a href="{% url 'booking:my_appointments' %}" class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 text-center hover:shadow-md transition group">
+            <div class="text-2xl mb-2">📅</div>
+            <div class="text-xs font-bold text-primary">نوبت‌های من</div>
+        </a>
+        <a href="{% url 'customers:my_businesses' %}" class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 text-center hover:shadow-md transition group">
+            <div class="text-2xl mb-2">⭐</div>
+            <div class="text-xs font-bold text-primary">آرایشگرهای من</div>
+        </a>
+        <a href="{% url 'booking:my_waiting' %}" class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 text-center hover:shadow-md transition group">
+            <div class="text-2xl mb-2">⏳</div>
+            <div class="text-xs font-bold text-primary">لیست انتظار</div>
+        </a>
+    </section>
+
+    {# آرایشگرهای ذخیره‌شده #}
+    <section>
+        <div class="flex items-center justify-between mb-5">
+            <div>
+                <h2 class="font-bold text-primary text-lg">آرایشگرها و سالن‌های من</h2>
+                <p class="text-xs text-darktext/50 mt-1">برای رزرو دوباره، سریع برگرد سراغ انتخاب‌های قبلیت.</p>
             </div>
+            <a href="{% url 'customers:my_businesses' %}" class="text-xs text-accent font-bold hover:underline shrink-0">مشاهده همه ←</a>
+        </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {% if my_businesses %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                 {% for business in my_businesses|slice:":4" %}
-                    <div class="bg-white rounded-2xl shadow-sm p-4 flex items-center gap-3">
-                        {% if business.avatar %}
-                            <img src="{{ business.avatar.url }}"
-                                 alt="{{ business.name }}"
-                                 class="w-12 h-12 rounded-full object-cover shrink-0 ring-2 ring-accent/20">
-                        {% else %}
-                            <div class="w-12 h-12 rounded-full bg-primary text-white flex items-center justify-center font-bold shrink-0">
-                                {{ business.name|slice:":1" }}
+                    <article class="bg-white rounded-2xl shadow-sm p-5 sm:p-6 hover:shadow-md transition">
+                        <div class="flex items-center gap-3">
+                            {% if business.avatar %}
+                                <img src="{{ business.avatar.url }}" alt="{{ business.name }}" class="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-accent/20">
+                            {% else %}
+                                <div class="w-14 h-14 rounded-full bg-primary text-white flex items-center justify-center font-bold text-lg shrink-0">{{ business.name|slice:":1" }}</div>
+                            {% endif %}
+                            <div class="flex-1 min-w-0">
+                                <h3 class="font-bold text-primary truncate">{{ business.name }}</h3>
+                                <p class="text-xs text-darktext/60 truncate mt-1">{{ business.activity_type.name }}{% if business.region %} · {{ business.region }}{% endif %}</p>
                             </div>
-                        {% endif %}
-
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-bold text-primary truncate">{{ business.name }}</h3>
-                            <p class="text-xs text-darktext/60 truncate">📍 {{ business.region }}</p>
                         </div>
-
-                        <a href="{% url 'booking:book' business.slug %}"
-                           class="bg-accent text-primary font-bold px-3 py-2 rounded-lg hover:opacity-90 transition text-xs shrink-0">
-                            رزرو
-                        </a>
-                    </div>
+                        <div class="grid grid-cols-2 gap-3 mt-5">
+                            <a href="{% url 'business:public_profile' business.slug %}" class="text-center border border-primary/10 text-primary font-bold py-2.5 rounded-xl hover:bg-cream transition text-xs">پروفایل</a>
+                            <a href="{% url 'booking:book' business.slug %}" class="text-center bg-accent text-primary font-bold py-2.5 rounded-xl hover:opacity-90 transition text-xs">رزرو نوبت</a>
+                        </div>
+                    </article>
                 {% endfor %}
             </div>
-        </div>
-    {% else %}
-        {# ─── Empty State ─── #}
-        <div class="bg-white rounded-2xl shadow-md p-10 text-center mb-5">
-            <div class="text-4xl mb-3">💼</div>
-            <h2 class="font-bold text-primary text-lg mb-2">
-                هنوز کسب‌وکاری توی لیستت نیست
-            </h2>
-            <p class="text-sm text-darktext/60">
-                وقتی از یه کسب‌وکار نوبت بگیری، خودکار اینجا اضافه میشه.
-            </p>
-        </div>
-    {% endif %}
+        {% else %}
+            <div class="bg-white rounded-2xl shadow-sm p-8 sm:p-10 text-center border border-primary/10">
+                <div class="text-4xl mb-3">✂️</div>
+                <h3 class="font-bold text-primary mb-2">هنوز کسی رو ذخیره نکردی</h3>
+                <p class="text-sm text-darktext/60">شماره آرایشگرت رو در کادر بالا وارد کن؛ بعد از اولین رزرو هم خودکار به لیستت اضافه می‌شه.</p>
+            </div>
+        {% endif %}
+    </section>
 
-    {# ─── راهنما ─── #}
-    <div class="bg-accent/10 border-2 border-accent/30 rounded-2xl p-5">
+    {# راهنما #}
+    <section class="bg-accent/10 border border-accent/30 rounded-2xl p-6 sm:p-7">
         <div class="flex items-start gap-3">
             <div class="text-2xl shrink-0">💡</div>
-            <div class="flex-1 text-sm text-darktext/80 leading-relaxed">
-                <strong class="text-accent">چطور از یه کسب‌وکار جدید نوبت بگیرم؟</strong>
-                <p class="mt-2">
-                    کافیه لینک اختصاصی کسب‌وکار رو ازشون بگیری یا QR Code رو اسکن کنی.
-                    بعد از اولین نوبت، خودکار به این لیست اضافه میشه.
-                </p>
+            <div class="text-sm text-darktext/80 leading-relaxed">
+                <strong class="text-primary">لینک یا QR آرایشگرت رو داری؟</strong>
+                <p class="mt-1">مستقیم هم می‌تونی با لینک اختصاصی وارد صفحه‌اش بشی؛ برای دیدن خدمات و ساعت‌های آزاد نیازی به ورود دوباره نیست.</p>
             </div>
         </div>
-    </div>
+    </section>
 
+</div>
 {% endblock %}

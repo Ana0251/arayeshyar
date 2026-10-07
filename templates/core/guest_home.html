@@ -1,59 +1,139 @@
 {% extends 'base.html' %}
 {% load static %}
+{% block title %}آرایشیار | پیدا کردن و رزرو آنلاین آرایشگر و سالن{% endblock %}
+{% block meta_description %}آرایشگر یا سالن موردعلاقه‌ات را با شماره موبایل پیدا کن، خدمات و ساعت‌های آزاد را ببین و آنلاین نوبت بگیر.{% endblock %}
 
-{% block title %}آرایشیار — نوبت‌دهی آنلاین{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}/{% endblock %}
 
 {% block content %}
-<div class="max-w-md mx-auto text-center py-12">
+<div class="space-y-12 sm:space-y-16 pb-10">
 
-    {# ─── لوگو ─── #}
-    <div class="w-32 h-32 mx-auto mb-6 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden ring-4 ring-accent/30">
-        <img src="{% static 'icons/logo.png' %}"
-             alt="آرایشیار"
-             class="w-full h-full object-cover">
-    </div>
+    {# Hero #}
+    <section class="relative overflow-hidden bg-primary text-white rounded-2xl shadow-lg p-6 sm:p-8">
+        <div class="absolute -top-10 -left-10 w-32 h-32 rounded-full bg-accent/20"></div>
+        <div class="absolute -bottom-12 -right-12 w-40 h-40 rounded-full bg-white/10"></div>
 
-    <h1 class="text-3xl font-bold text-primary mb-3">آرایشیار</h1>
-    <p class="text-darktext/60 leading-relaxed mb-8">
-        نوبت‌دهی آنلاین کسب‌وکارهای زیبایی
-        <br>
-        ساده، سریع، بدون تماس تلفنی
-    </p>
+        <div class="relative grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            <div>
+                <div class="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-3 py-1.5 text-xs text-white/80 mb-4">
+                    ✨ نوبت‌دهی آنلاین خدمات زیبایی
+                </div>
+                <h1 class="text-3xl sm:text-4xl font-bold leading-relaxed">نوبت آرایشگاهتو<br><span class="text-accent">بدون تماس</span> بگیر.</h1>
+                <p class="text-white/70 mt-4 leading-relaxed text-sm sm:text-base">آرایشگر یا سالنت رو پیدا کن، زمان‌های آزاد رو ببین و در چند مرحله ساده نوبتت رو ثبت کن.</p>
+                <div class="flex flex-col sm:flex-row gap-2 mt-5">
+                    <a href="#find-barber" class="bg-accent text-primary font-bold px-5 py-3 rounded-xl text-center hover:opacity-90 active:scale-[0.98] transition">🔎 پیدا کردن آرایشگر</a>
+                    <a href="{% url 'accounts:register_business' %}" class="bg-white/10 border border-white/30 text-white font-bold px-5 py-3 rounded-xl text-center hover:bg-white/20 transition">برای آرایشگرها و سالن‌ها</a>
+                </div>
+            </div>
 
-    {# ویژگی‌ها #}
-    <div class="grid grid-cols-3 gap-3 mb-8 text-center">
-        <div class="bg-white rounded-xl shadow-sm p-3">
-            <div class="text-2xl mb-1">📅</div>
-            <div class="text-xs font-bold text-primary">نوبت آنلاین</div>
+            <div class="flex justify-center">
+                <div class="w-56 bg-white rounded-2xl shadow-lg p-4 text-primary transform rotate-1">
+                    <div class="flex items-center gap-3 pb-3 border-b border-primary/10">
+                        <img src="{% static 'icons/logo.png' %}" alt="آرایشیار" class="w-12 h-12 rounded-full object-cover ring-2 ring-accent/20">
+                        <div>
+                            <div class="font-bold">رزرو سریع</div>
+                            <div class="text-[10px] text-darktext/50">بدون تماس و رفت‌وبرگشت پیام</div>
+                        </div>
+                    </div>
+                    <div class="space-y-2 mt-3 text-xs">
+                        <div class="bg-cream rounded-xl p-3 flex items-center justify-between"><span>خدمت</span><strong>کوتاهی مو</strong></div>
+                        <div class="bg-cream rounded-xl p-3 flex items-center justify-between"><span>تاریخ</span><strong>۱۴۰۵/۰۷/۱۵</strong></div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <span class="bg-accent/10 text-accent font-bold rounded-lg py-2 text-center">۱۶:۰۰</span>
+                            <span class="bg-accent text-primary font-bold rounded-lg py-2 text-center">۱۶:۳۰</span>
+                            <span class="bg-accent/10 text-accent font-bold rounded-lg py-2 text-center">۱۷:۰۰</span>
+                        </div>
+                        <div class="bg-primary text-white text-center rounded-xl py-3 font-bold">ثبت نوبت ✓</div>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-3">
-            <div class="text-2xl mb-1">⚡</div>
-            <div class="text-xs font-bold text-primary">سریع و راحت</div>
+    </section>
+
+    {# Search #}
+    <section id="find-barber" class="scroll-mt-24 py-2 sm:py-4">
+        {% include 'core/partials/_phone_search.html' %}
+        <p class="text-center text-xs text-darktext/40 mt-2">برای جست‌وجو فقط شماره کامل موبایل صاحب مجموعه استفاده می‌شه.</p>
+    </section>
+
+    {# How it works #}
+    <section class="py-1 sm:py-2">
+        <div class="text-center mb-7 sm:mb-9">
+            <h2 class="text-2xl sm:text-3xl font-bold text-primary">سه قدم تا نوبتت</h2>
+            <p class="text-sm text-darktext/60 mt-2">ساده طراحی شده تا درگیر تماس و هماهنگی نباشی.</p>
         </div>
-        <div class="bg-white rounded-xl shadow-sm p-3">
-            <div class="text-2xl mb-1">🎁</div>
-            <div class="text-xs font-bold text-primary">رایگان</div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            <div class="bg-white rounded-2xl shadow-sm p-6 sm:p-7 text-center">
+                <div class="w-12 h-12 mx-auto rounded-xl bg-accent/10 text-accent flex items-center justify-center text-2xl mb-3">1</div>
+                <h3 class="font-bold text-primary">پیداش کن</h3>
+                <p class="text-xs text-darktext/60 mt-2 leading-relaxed">با شماره موبایل، لینک اختصاصی یا QR وارد صفحه آرایشگر یا سالن شو.</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm p-6 sm:p-7 text-center">
+                <div class="w-12 h-12 mx-auto rounded-xl bg-accent/10 text-accent flex items-center justify-center text-2xl mb-3">2</div>
+                <h3 class="font-bold text-primary">زمان رو انتخاب کن</h3>
+                <p class="text-xs text-darktext/60 mt-2 leading-relaxed">خدمت، کارمند و زمان‌های واقعاً آزاد رو ببین و گزینه مناسب رو بردار.</p>
+            </div>
+            <div class="bg-white rounded-2xl shadow-sm p-6 sm:p-7 text-center">
+                <div class="w-12 h-12 mx-auto rounded-xl bg-accent/10 text-accent flex items-center justify-center text-2xl mb-3">3</div>
+                <h3 class="font-bold text-primary">نوبت ثبت شد</h3>
+                <p class="text-xs text-darktext/60 mt-2 leading-relaxed">بار اول با ایمیل تأیید می‌شی و دفعات بعد خیلی سریع‌تر نوبت می‌گیری.</p>
+            </div>
         </div>
-    </div>
+    </section>
 
-    {# دکمه ورود #}
-    <a href="{% url 'accounts:login_phone' %}"
-        class="block w-full bg-accent text-primary font-bold py-4 rounded-2xl hover:opacity-90 active:scale-[0.98] transition text-lg">
-        📱 ورود با شماره موبایل
-    </a>
+    {# Business benefits #}
+    <section class="bg-white rounded-2xl shadow-md p-6 sm:p-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-7 sm:gap-10 items-center">
+            <div>
+                <span class="text-xs font-bold text-accent">برای صاحبان کسب‌وکار</span>
+                <h2 class="text-2xl font-bold text-primary mt-2">کمتر تلفن جواب بده، منظم‌تر نوبت بده.</h2>
+                <p class="text-sm text-darktext/60 mt-3 leading-relaxed">خدمات، اتاق‌ها، کارکنان، شیفت‌ها، ساعت کاری، لیست انتظار و نوبت‌ها رو از یک جا مدیریت کن.</p>
+                <a href="{% url 'accounts:register_business' %}" class="inline-block bg-primary text-white font-bold px-5 py-3 rounded-xl mt-4 hover:opacity-90 transition">ثبت‌نام آرایشگر / سالن</a>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-cream rounded-2xl p-5"><div class="text-2xl mb-2">👥</div><div class="font-bold text-primary text-sm">مدیریت کارکنان</div><div class="text-[10px] text-darktext/50 mt-1">خدمت، اتاق و شیفت</div></div>
+                <div class="bg-cream rounded-2xl p-5"><div class="text-2xl mb-2">📅</div><div class="font-bold text-primary text-sm">تقویم نوبت‌ها</div><div class="text-[10px] text-darktext/50 mt-1">ساعت‌های آزاد واقعی</div></div>
+                <div class="bg-cream rounded-2xl p-5"><div class="text-2xl mb-2">⏳</div><div class="font-bold text-primary text-sm">لیست انتظار</div><div class="text-[10px] text-darktext/50 mt-1">پرکردن زمان‌های خالی</div></div>
+                <div class="bg-cream rounded-2xl p-5"><div class="text-2xl mb-2">📱</div><div class="font-bold text-primary text-sm">لینک و QR اختصاصی</div><div class="text-[10px] text-darktext/50 mt-1">برای مشتری‌های خودت</div></div>
+            </div>
+        </div>
+    </section>
 
-    {# جداکننده #}
-    <div class="flex items-center gap-3 my-4">
-        <div class="flex-1 h-px bg-darktext/10"></div>
-        <span class="text-xs text-darktext/40">یا</span>
-        <div class="flex-1 h-px bg-darktext/10"></div>
-    </div>
+    {# Sample testimonials #}
+    <section class="py-1 sm:py-2">
+        <div class="text-center mb-7 sm:mb-9">
+            <div class="inline-block text-[10px] font-bold bg-warning/20 text-warning rounded-full px-3 py-1.5 mb-3">نمونه متن تا زمان دریافت بازخورد واقعی</div>
+            <h2 class="text-2xl font-bold text-primary">تجربه‌ای که آرایشیار برایش ساخته شده</h2>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            <blockquote class="bg-white rounded-2xl shadow-sm p-6 sm:p-7">
+                <div class="text-accent text-xl mb-2">★★★★★</div>
+                <p class="text-sm text-darktext/70 leading-relaxed">«دیگه وسط کار لازم نیست برای هماهنگی ساعت، چند بار تلفن جواب بدم. مشتری خودش زمان خالی رو می‌بینه.»</p>
+                <footer class="text-xs font-bold text-primary mt-4">سارا — مدیر سالن زیبایی</footer>
+            </blockquote>
+            <blockquote class="bg-white rounded-2xl shadow-sm p-6 sm:p-7">
+                <div class="text-accent text-xl mb-2">★★★★★</div>
+                <p class="text-sm text-darktext/70 leading-relaxed">«برای گرفتن وقت لازم نیست پیام بدم و منتظر جواب بمونم؛ زمان مناسب رو انتخاب می‌کنم و تمام.»</p>
+                <footer class="text-xs font-bold text-primary mt-4">نگار — مشتری</footer>
+            </blockquote>
+            <blockquote class="bg-white rounded-2xl shadow-sm p-6 sm:p-7">
+                <div class="text-accent text-xl mb-2">★★★★★</div>
+                <p class="text-sm text-darktext/70 leading-relaxed">«شیفت‌ها و نوبت کارکنان جلوی چشممه و خیلی کمتر تداخل زمانی پیش میاد.»</p>
+                <footer class="text-xs font-bold text-primary mt-4">مهدی — آرایشگر</footer>
+            </blockquote>
+        </div>
+    </section>
 
-    {# دکمه ثبت‌نام کسب‌وکار #}
-    <a href="{% url 'business:register_start' %}"
-        class="block w-full bg-white text-primary font-bold py-4 rounded-2xl hover:bg-cream active:scale-[0.98] transition text-lg border-2 border-primary/10">
-        💼 ثبت‌نام کسب‌وکار
-    </a>
+    {# Bottom CTA #}
+    <section class="bg-accent/10 border border-accent/30 rounded-2xl p-7 sm:p-10 text-center">
+        <h2 class="font-bold text-primary text-xl">آماده‌ای امتحانش کنی؟</h2>
+        <p class="text-sm text-darktext/60 mt-2">برای رزرو لازم نیست اول ثبت‌نام کنی؛ آرایشگرت رو پیدا کن و زمان مناسب رو انتخاب کن.</p>
+        <div class="flex flex-col sm:flex-row justify-center gap-3 mt-6">
+            <a href="#find-barber" class="bg-accent text-primary font-bold px-5 py-3 rounded-xl">پیدا کردن آرایشگر</a>
+            <a href="{% url 'accounts:register_customer' %}" class="bg-white border border-primary/10 text-primary font-bold px-5 py-3 rounded-xl">ساخت حساب مشتری</a>
+            <a href="{% url 'accounts:login' %}" class="bg-white/60 border border-primary/10 text-primary font-bold px-5 py-3 rounded-xl">ورود به حساب</a>
+        </div>
+    </section>
 
 </div>
 {% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}تکمیل اطلاعات مشتری — آرایشیار{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto mt-4 sm:mt-8">
+    <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-3xl mx-auto mb-3">👤</div>
+        <h1 class="text-2xl font-bold text-primary">فقط یک بار اطلاعاتت رو کامل کن</h1>
+        <p class="text-sm text-darktext/60 mt-2 leading-6">
+            ایمیلت تأیید شده. نام و موبایلت رو وارد کن تا نوبتت ثبت بشه.<br>
+            دفعات بعد این مرحله رو نمی‌بینی.
+        </p>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="bg-cream px-5 py-3 border-b border-black/5 flex items-center justify-between gap-3">
+            <span class="font-bold text-primary">{{ business.name }}</span>
+            <span class="text-xs text-darktext/60">{{ pending_date }} — {{ pending_time }}</span>
+        </div>
+
+        <form method="post" class="p-5 space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.full_name.label }}</label>
+                {{ form.full_name }}
+                {% if form.full_name.errors %}<p class="text-danger text-xs mt-1">{{ form.full_name.errors.0 }}</p>{% endif %}
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.phone.label }}</label>
+                {{ form.phone }}
+                {% if form.phone.errors %}<p class="text-danger text-xs mt-1">{{ form.phone.errors.0 }}</p>{% endif %}
+                <p class="text-xs text-darktext/45 mt-1.5">برای مدیریت نوبت، جست‌وجوی حساب و اطلاع‌رسانی‌های ضروری استفاده می‌شه.</p>
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 active:scale-[0.99] transition">
+                ثبت نهایی نوبت
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

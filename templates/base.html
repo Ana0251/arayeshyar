@@ -8,7 +8,19 @@
     <meta name="theme-color" content="#2C3E50">
     <meta name="csrf-token" content="{{ csrf_token }}">
 
-    <title>{% block title %}آرایشیار{% endblock %}</title>
+    <title>{% block title %}آرایشیار | رزرو آنلاین خدمات زیبایی{% endblock %}</title>
+    <meta name="description" content="{% block meta_description %}آرایشیار؛ رزرو آنلاین آرایشگر و سالن، مشاهده خدمات و ساعت‌های آزاد بدون تماس.{% endblock %}">
+    <meta name="robots" content="{% block robots %}index,follow,max-image-preview:large{% endblock %}">
+    {% if google_site_verification %}<meta name="google-site-verification" content="{{ google_site_verification }}">{% endif %}
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.build_absolute_uri }}{% endblock %}">
+    <meta property="og:site_name" content="آرایشیار">
+    <meta property="og:locale" content="fa_IR">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}آرایشیار | رزرو آنلاین خدمات زیبایی{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}رزرو آنلاین آرایشگر و سالن بدون تماس.{% endblock %}">
+    <meta property="og:url" content="{{ request.build_absolute_uri }}">
+    {% block og_image %}{% endblock %}
 
     {# PWA #}
     <link rel="manifest" href="/manifest.webmanifest">
@@ -25,9 +37,20 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 
     {# Tailwind #}
-    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}">
+    <link rel="stylesheet" href="{% static 'css/tailwind.css' %}?v=20261007-10">
 
     <style>
+
+        persian-datepicker-element {
+            position: relative;
+            z-index: 60;
+            isolation: isolate;
+        }
+        .time-picker-wrapper {
+            position: relative;
+            z-index: 10;
+        }
+
         input[data-persian-datepicker] {
             cursor: pointer;
             background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%232C3E50' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Cline x1='16' y1='2' x2='16' y2='6'%3E%3C/line%3E%3Cline x1='8' y1='2' x2='8' y2='6'%3E%3C/line%3E%3Cline x1='3' y1='10' x2='21' y2='10'%3E%3C/line%3E%3C/svg%3E");
@@ -56,7 +79,9 @@
 
                 {% if user.is_authenticated %}
 
-                {% if user_business %}
+                {% if user.is_platform_admin or user.is_superuser %}
+                <a href="{% url 'control:dashboard' %}" class="bg-accent text-primary font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition">🛡️ <span class="hidden sm:inline">پنل مدیریت</span></a>
+                {% elif user_business %}
                 {# صاحب کسب‌وکار #}
                 <a href="{% url 'business:dashboard' %}"
                     class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition font-bold">
@@ -80,7 +105,7 @@
 
                 <a href="{% url 'customers:my_businesses' %}"
                     class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
-                    💼 <span class="hidden sm:inline">کسب‌وکارهای من</span>
+                    💼 <span class="hidden sm:inline">آرایشگرهای من</span>
                 </a>
 
                 <a href="{% url 'booking:my_appointments' %}"
@@ -97,6 +122,10 @@
                     💼 ثبت‌نام کسب‌وکار
                 </a>
                 {% endif %}
+
+                <a href="{% url 'accounts:change_password' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
+                    🔐 <span class="hidden sm:inline">رمز</span>
+                </a>
 
                 {# لینک پشتیبانی برای همه #}
                 <a href="{% url 'support:my_tickets' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
@@ -118,9 +147,8 @@
 
                 {% else %}
                 {# مهمان #}
-                <a href="{% url 'core:home' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">
-                    خانه
-                </a>
+                <a href="{% url 'core:home' %}" class="px-3 py-1.5 rounded-lg hover:bg-white/10 transition">خانه</a>
+                <a href="{% url 'blog:list' %}" class="hidden sm:inline-block px-3 py-1.5 rounded-lg hover:bg-white/10 transition">وبلاگ</a>
 
                 <a href="{% url 'business:register_start' %}"
                     class="bg-accent text-primary font-bold px-3 py-1.5 rounded-lg hover:opacity-90 transition text-xs sm:text-sm">
@@ -128,7 +156,7 @@
                     <span class="sm:hidden">کسب‌وکار</span>
                 </a>
 
-                <a href="{% url 'accounts:login_phone' %}"
+                <a href="{% url 'accounts:login_email' %}"
                     class="bg-white/10 border border-white/30 text-white font-bold px-3 py-1.5 rounded-lg hover:bg-white/20 transition">
                     ورود
                 </a>
@@ -172,6 +200,7 @@
         <div class="max-w-5xl mx-auto px-4 space-y-3">
 
             <div class="flex items-center justify-center gap-3 flex-wrap text-xs">
+                <a href="{% url 'blog:list' %}" class="hover:text-accent transition">📚 وبلاگ</a>
                 <a href="{% url 'support:new_ticket' %}" class="hover:text-accent transition">
                     📝 پشتیبانی
                 </a>
@@ -198,13 +227,13 @@
     </footer>
 
     {# اسکریپت‌ها #}
-    <script src="{% static 'js/jalali.js' %}"></script>
+    <script src="{% static 'js/jalali.js' %}?v=20261007-10"></script>
     <script src="{% static 'vendor/persian-datepicker-element/persian-datepicker-element.min.js' %}"></script>
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <script src="{% static 'js/date-picker.js' %}"></script>
-    <script src="{% static 'js/time-picker.js' %}"></script>
+    <script src="{% static 'js/date-picker.js' %}?v=20261007-10"></script>
+    <script src="{% static 'js/time-picker.js' %}?v=20261007-10"></script>
 
     <script>
         window.showToast = function (message, type) {
@@ -238,18 +267,46 @@
     </script>
 
     <script>
-        if ('serviceWorker' in navigator) {
+        // در محیط توسعه Service Worker می‌تواند نسخه قدیمی CSS/JS/HTML را نگه دارد
+        // و باعث شود چیدمان فقط بعد از Hard Refresh درست شود.
+        (function () {
+            if (!('serviceWorker' in navigator)) return;
+
+            var isLocalDev = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+
             window.addEventListener('load', function () {
+                if (isLocalDev) {
+                    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                        registrations.forEach(function (registration) {
+                            registration.unregister();
+                        });
+                    });
+
+                    if ('caches' in window) {
+                        caches.keys().then(function (keys) {
+                            return Promise.all(
+                                keys
+                                    .filter(function (key) { return key.indexOf('arayeshyar-') === 0; })
+                                    .map(function (key) { return caches.delete(key); })
+                            );
+                        });
+                    }
+
+                    console.log('[PWA] Service Worker disabled in local development.');
+                    return;
+                }
+
                 navigator.serviceWorker
-                    .register('/sw.js', { scope: '/' })
+                    .register('/sw.js?v=20261007-10', { scope: '/' })
                     .then(function (registration) {
+                        registration.update();
                         console.log('[PWA] SW registered:', registration.scope);
                     })
                     .catch(function (error) {
                         console.warn('[PWA] SW registration failed:', error);
                     });
             });
-        }
+        })();
     </script>
 
     {% block extra_js %}{% endblock %}

@@ -115,6 +115,13 @@ def get_public_business_data(business: Business) -> dict:
         .order_by("order")
     )
 
+    # ─── اعضای تیم فعال ───
+    staff_members = (
+        business.staff.filter(is_active=True)
+        .prefetch_related("staff_services__service", "staff_services__station")
+        .order_by("order", "id")
+    )
+
     # ─── برنامه هفتگی ───
     working_hours = (
         business.working_hours.filter(
@@ -135,6 +142,7 @@ def get_public_business_data(business: Business) -> dict:
         "business": business,
         "services": services,
         "stations": stations,
+        "staff_members": staff_members,
         "working_hours": working_hours,
         "upcoming_days_off": upcoming_days_off,
     }

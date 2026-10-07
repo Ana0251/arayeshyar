@@ -54,9 +54,15 @@ from .views import (
     delete_break,
     manage_breaks,
     
+    manage_staff,
+    edit_staff,
+    toggle_staff,
     delete_staff_schedule,
     edit_staff_schedule, 
     manage_staff_schedules,
+    manage_customers,
+    customer_detail,
+    toggle_customer_block,
 )
 
 app_name = "business"
@@ -218,6 +224,19 @@ urlpatterns = [
     
     path("business/analytics/", analytics, name="analytics"),
     
+
+    # Customers
+    path("business/customers/", manage_customers, name="manage_customers"),
+    path("business/customers/<int:customer_id>/", customer_detail, name="customer_detail"),
+    path("business/customers/<int:customer_id>/block/", toggle_customer_block, name="toggle_customer_block"),
+
+    # ═══════════════════════════════════════════════════════════
+    #  Staff (کارمندها)
+    # ═══════════════════════════════════════════════════════════
+    path("business/staff/", manage_staff, name="manage_staff"),
+    path("business/staff/<int:staff_id>/edit/", edit_staff, name="edit_staff"),
+    path("business/staff/<int:staff_id>/toggle/", toggle_staff, name="toggle_staff"),
+
     # ═══════════════════════════════════════════════════════════
     #  Staff Schedules (شیفت کارمندها)
     # ═══════════════════════════════════════════════════════════

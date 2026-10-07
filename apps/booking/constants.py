@@ -81,7 +81,14 @@ class SlotStatus(models.TextChoices):
 # ═══════════════════════════════════════════════════════════════
 
 # ─── حداکثر نوبت همزمان برای یه مشتری ───
-MAX_ACTIVE_APPOINTMENTS_PER_CUSTOMER = 10
+MAX_ACTIVE_APPOINTMENTS_PER_CUSTOMER = 3
+
+# ─── حداکثر نوبت فعال آینده در کل سیستم برای یک مشتری ───
+MAX_GLOBAL_ACTIVE_APPOINTMENTS_PER_CUSTOMER = 5
+
+# ─── حداکثر رزرو موفق مشتری در یک بازه کوتاه ───
+MAX_BOOKINGS_PER_WINDOW = 3
+BOOKING_RATE_WINDOW_SECONDS = 10 * 60
 
 # ─── حداکثر آیتم لیست انتظار برای یه مشتری ───
 MAX_WAITING_ITEMS_PER_CUSTOMER = 5

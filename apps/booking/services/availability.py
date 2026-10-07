@@ -86,11 +86,15 @@ class AvailabilityService:
         target_date: date,
         station: Station | None = None,
         staff: Staff | None = None,
+        eligible_staff_ids: list[int] | tuple[int, ...] | set[int] | None = None,
     ) -> None:
         self.business = business
         self.target_date = target_date
         self.station = station
         self.staff = staff
+        self.eligible_staff_ids = (
+            set(eligible_staff_ids) if eligible_staff_ids is not None else None
+        )
         self.current_tz = timezone.get_current_timezone()
 
     # ═══════════════════════════════════════════════════════════
@@ -281,15 +285,23 @@ class AvailabilityService:
 
         iranian_weekday = Weekday.from_python_weekday(self.target_date.weekday())
 
-        schedules = (
-            StaffSchedule.objects.filter(
-                station=self.station,
-                weekday=iranian_weekday,
-                is_active=True,
-                staff__is_active=True,
-            )
-            .select_related("staff")
+        schedules = StaffSchedule.objects.filter(
+            station=self.station,
+            weekday=iranian_weekday,
+            is_active=True,
+            staff__is_active=True,
         )
+
+        # وقتی مشتری «فرقی نمی‌کند» را انتخاب کرده، فقط کارمندهایی باید در
+        # محاسبه اسلات شرکت کنند که واقعاً خدمت انتخاب‌شده را ارائه می‌دهند.
+        # در غیر این صورت شیفت یک کارمند نامرتبط می‌تواند ساعت را آزاد نشان دهد
+        # ولی هنگام ثبت BookingService نتواند کارمند واجدشرایط پیدا کند.
+        if self.eligible_staff_ids is not None:
+            if not self.eligible_staff_ids:
+                return []
+            schedules = schedules.filter(staff_id__in=self.eligible_staff_ids)
+
+        schedules = schedules.select_related("staff")
 
         if not schedules.exists():
             return []
@@ -402,22 +414,29 @@ class AvailabilityService:
         if special:
             return (special.start_time, special.end_time)
 
-        # ═══════════════════════════════════════════════════════════
-        #  سالن: از StaffSchedule
-        # ═══════════════════════════════════════════════════════════
+        # ساعت کاری کلی کسب‌وکار (station=None). برای سالن اختیاری است و
+        # مثل سقف فعالیت عمل می‌کند؛ شیفت کارمند باید داخل این بازه باشد.
+        global_working = self._get_global_working_hours()
+
         if self.business.is_salon and self.station:
             schedules = self._get_station_schedules()
-            if schedules:
-                min_start = min(s[0] for s in schedules)
-                max_end = max(s[1] for s in schedules)
-                return (min_start, max_end)
+            if not schedules:
+                return None
 
-        # ═══════════════════════════════════════════════════════════
-        #  شخصی (یا سالن بدون شیفت): از WorkingHours
-        # ═══════════════════════════════════════════════════════════
-        working = self._get_working_hours_legacy()
-        if working:
-            return (working.start_time, working.end_time)
+            min_start = min(s[0] for s in schedules)
+            max_end = max(s[1] for s in schedules)
+
+            if global_working:
+                min_start = max(min_start, global_working.start_time)
+                max_end = min(max_end, global_working.end_time)
+                if min_start >= max_end:
+                    return None
+
+            return (min_start, max_end)
+
+        # کسب‌وکار شخصی از ساعت کاری کلی استفاده می‌کند.
+        if global_working:
+            return (global_working.start_time, global_working.end_time)
 
         return None
 
@@ -431,30 +450,46 @@ class AvailabilityService:
             station=self.station,
             weekday=iranian_weekday,
             is_active=True,
+            staff__is_active=True,
         )
 
         if self.staff:
             qs = qs.filter(staff=self.staff)
+        elif self.eligible_staff_ids is not None:
+            if not self.eligible_staff_ids:
+                return []
+            qs = qs.filter(staff_id__in=self.eligible_staff_ids)
 
         return [(s.start_time, s.end_time) for s in qs]
 
     def _has_day_off(self) -> bool:
         qs = DayOff.objects.filter(business=self.business, date=self.target_date)
         if self.station:
-            qs = qs.filter(station=self.station)
+            # تعطیلی کلی سالن یا تعطیلی همان اتاق، هر دو معتبرند.
+            qs = qs.filter(Q(station=self.station) | Q(station__isnull=True))
         else:
             qs = qs.filter(station__isnull=True)
         return qs.exists()
 
     def _get_special_hours(self) -> SpecialWorkingHours | None:
-        qs = SpecialWorkingHours.objects.filter(
+        base = SpecialWorkingHours.objects.filter(
             business=self.business, date=self.target_date
         )
         if self.station:
-            qs = qs.filter(station=self.station)
-        else:
-            qs = qs.filter(station__isnull=True)
-        return qs.first()
+            # ساعت خاص اتاق اولویت دارد؛ در نبود آن، ساعت خاص کلی سالن اعمال می‌شود.
+            specific = base.filter(station=self.station).first()
+            if specific:
+                return specific
+        return base.filter(station__isnull=True).first()
+
+    def _get_global_working_hours(self) -> WorkingHours | None:
+        iranian_weekday = Weekday.from_python_weekday(self.target_date.weekday())
+        return WorkingHours.objects.filter(
+            business=self.business,
+            weekday=iranian_weekday,
+            station__isnull=True,
+            is_active=True,
+        ).first()
 
     def _get_working_hours_legacy(self) -> WorkingHours | None:
         """

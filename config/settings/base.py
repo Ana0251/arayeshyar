@@ -53,6 +53,8 @@ env = environ.Env(
     SMSIR_API_KEY=(str, ""),
     SMSIR_LINE_NUMBER=(str, ""),
     SMSIR_TEMPLATE_ID=(int, 0),
+    DEFAULT_FROM_EMAIL=(str, "no-reply@arayeshyar.local"),
+    GOOGLE_SITE_VERIFICATION=(str, ""),
 )
 
 env_file = BASE_DIR / ".env"
@@ -113,6 +115,7 @@ LOCAL_APPS = [
     "apps.notifications",
     "apps.analytics",
     "apps.support",
+    "apps.blog",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -132,6 +135,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_htmx.middleware.HtmxMiddleware",
+    "apps.core.middleware.PrivatePagesNoIndexMiddleware",
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -198,11 +202,10 @@ CACHES = {
 AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
-    "apps.accounts.backends.OTPBackend",
     "django.contrib.auth.backends.ModelBackend",
 ]
 
-LOGIN_URL = "accounts:login_phone"
+LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "core:home"
 LOGOUT_REDIRECT_URL = "core:home"
 
@@ -211,10 +214,10 @@ LOGOUT_REDIRECT_URL = "core:home"
 # ═══════════════════════════════════════════════════════════════
 
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 6},
+    },
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -437,3 +440,5 @@ SUPPORT_TELEGRAM = env("SUPPORT_TELEGRAM")
 SMSIR_API_KEY = env("SMSIR_API_KEY")
 SMSIR_LINE_NUMBER = env("SMSIR_LINE_NUMBER")
 SMSIR_TEMPLATE_ID = env("SMSIR_TEMPLATE_ID")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL")
+GOOGLE_SITE_VERIFICATION = env("GOOGLE_SITE_VERIFICATION")

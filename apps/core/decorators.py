@@ -113,7 +113,7 @@ def active_business_required(view_func: Callable) -> Callable:
     @wraps(view_func)
     def wrapper(request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         if not request.user.is_authenticated:
-            return redirect("accounts:login_phone")
+            return redirect("accounts:login")
 
         business = getattr(request.user, "business", None)
         if not business:

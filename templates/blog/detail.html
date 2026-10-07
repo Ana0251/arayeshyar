@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.meta_title|default:post.title }} | آرایشیار{% endblock %}
+{% block meta_description %}{{ post.meta_description|default:post.excerpt|default:post.title }}{% endblock %}
+{% block canonical_url %}{{ request.scheme }}://{{ request.get_host }}{{ post.get_absolute_url }}{% endblock %}
+{% block og_type %}article{% endblock %}{% block og_title %}{{ post.meta_title|default:post.title }}{% endblock %}{% block og_description %}{{ post.meta_description|default:post.excerpt }}{% endblock %}
+{% block og_image %}{% if post.featured_image %}<meta property="og:image" content="{{ request.scheme }}://{{ request.get_host }}{{ post.featured_image.url }}">{% endif %}{% endblock %}
+{% block extra_head %}{{ block.super }}<script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"{{ post.title|escapejs }}","datePublished":"{{ post.published_at|date:'c' }}","dateModified":"{{ post.updated_at|date:'c' }}","mainEntityOfPage":"{{ request.build_absolute_uri|escapejs }}"}</script>{% endblock %}
+{% block content %}
+<article class="max-w-3xl mx-auto py-8 sm:py-12"><div class="mb-7">{% if post.category %}<a href="{% url 'blog:list' %}" class="text-accent font-bold text-sm">{{ post.category }}</a>{% endif %}<h1 class="text-3xl sm:text-4xl font-black text-primary leading-[1.6] mt-2">{{ post.title }}</h1>{% if post.excerpt %}<p class="text-lg text-darktext/60 leading-8 mt-3">{{ post.excerpt }}</p>{% endif %}</div>{% if post.featured_image %}<img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-full rounded-3xl max-h-[480px] object-cover mb-8">{% endif %}<div class="bg-white rounded-3xl border border-black/5 p-6 sm:p-9 text-darktext leading-9 text-[15px] sm:text-base">{{ post.body|linebreaks }}</div><div class="mt-8"><a href="{% url 'blog:list' %}" class="font-bold text-primary">← برگشت به وبلاگ</a></div></article>
+{% endblock %}

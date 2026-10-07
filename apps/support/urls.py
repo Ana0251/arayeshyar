@@ -9,6 +9,7 @@ from . import views
 app_name = "support"
 
 urlpatterns = [
+    path("support/password-help/", views.password_help, name="password_help"),
     path(
         "support/new/",
         views.new_ticket,

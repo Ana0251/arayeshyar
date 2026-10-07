@@ -246,3 +246,18 @@ class TicketAttachment(TimeStampedModel):
         if self.file_size < 1024 * 1024:
             return f"{self.file_size / 1024:.1f} کیلوبایت"
         return f"{self.file_size / (1024 * 1024):.1f} مگابایت"
+class PasswordResetRequest(TimeStampedModel):
+    """درخواست بازیابی رمز وقتی کانال OTP در دسترس نیست."""
+    STATUS_CHOICES=[("open","باز"),("done","انجام شد"),("rejected","رد شد")]
+    phone=models.CharField("شماره موبایل",max_length=15,db_index=True)
+    full_name=models.CharField("نام",max_length=120,blank=True)
+    note=models.TextField("توضیحات",max_length=1000,blank=True)
+    status=models.CharField("وضعیت",max_length=10,choices=STATUS_CHOICES,default="open",db_index=True)
+    user=models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True,related_name="password_reset_requests",verbose_name="کاربر مرتبط")
+    handled_by=models.ForeignKey(User,on_delete=models.SET_NULL,null=True,blank=True,related_name="handled_password_reset_requests",verbose_name="رسیدگی‌کننده")
+    handled_at=models.DateTimeField("زمان رسیدگی",null=True,blank=True)
+    class Meta:
+        ordering=["-created_at"]
+        verbose_name="درخواست بازیابی رمز"
+        verbose_name_plural="درخواست‌های بازیابی رمز"
+    def __str__(self): return f"{self.phone} - {self.get_status_display()}"

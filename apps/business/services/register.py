@@ -21,7 +21,7 @@ from django.db import transaction
 from django.utils.text import slugify
 
 from apps.accounts.constants import Role
-from apps.accounts.models import User
+from apps.accounts.models import BusinessOwnerProfile, User
 
 from ..models import (
     ActivityType,
@@ -132,6 +132,12 @@ class RegisterService:
         # ─── Plan trial ───
         trial_plan = Plan.objects.filter(slug="trial").first()
 
+        # ─── شماره موبایل مدیر / شناسه ورود ───
+        owner_phone = info_data.get("owner_phone")
+        if owner_phone and self.user.phone != owner_phone:
+            self.user.phone = owner_phone
+            self.user.save(update_fields=["phone"])
+
         # ─── Business ───
         business = Business(
             owner=self.user,
@@ -194,12 +200,13 @@ class RegisterService:
         if self.user.role != Role.BUSINESS_OWNER:
             self.user.role = Role.BUSINESS_OWNER
             self.user.save(update_fields=["role"])
+        BusinessOwnerProfile.objects.get_or_create(user=self.user)
 
         # ─── پاک کردن session ───
         self.clear_session()
 
         logger.info(
-            f"Business registered: {business.name} by {self.user.phone}"
+            f"Business registered: {business.name} by {self.user.email}"
         )
 
         return business

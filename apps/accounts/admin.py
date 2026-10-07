@@ -24,6 +24,7 @@ class UserAdmin(BaseUserAdmin):
 
     list_display = (
         "phone",
+        "email",
         "display_name_short",
         "role_badge",
         "is_active",
@@ -31,14 +32,14 @@ class UserAdmin(BaseUserAdmin):
         "date_joined",
     )
     list_filter = ("role", "is_active", "is_staff", "date_joined")
-    search_fields = ("phone",)
+    search_fields = ("email", "phone")
     ordering = ("-date_joined",)
     readonly_fields = ("date_joined", "last_login", "last_login_ip")
     list_per_page = 50
     date_hierarchy = "date_joined"
 
     fieldsets = (
-        (None, {"fields": ("phone", "password")}),
+        (None, {"fields": ("email", "phone", "password")}),
         (
             _("نقش و دسترسی"),
             {"fields": ("role", "is_active", "is_staff", "is_superuser")},
@@ -54,7 +55,7 @@ class UserAdmin(BaseUserAdmin):
             None,
             {
                 "classes": ("wide",),
-                "fields": ("phone", "role", "password1", "password2"),
+                "fields": ("email", "phone", "role", "password1", "password2"),
             },
         ),
     )
@@ -102,7 +103,7 @@ class CustomerProfileAdmin(admin.ModelAdmin):
         "created_at",
     )
     list_filter = ("hide_ads_banner", "created_at")
-    search_fields = ("user__phone", "full_name")
+    search_fields = ("user__email", "user__phone", "full_name")
     readonly_fields = ("created_at", "updated_at")
     autocomplete_fields = ("user",)
     list_per_page = 50
@@ -143,6 +144,7 @@ class BusinessOwnerProfileAdmin(admin.ModelAdmin):
         "created_at",
     )
     search_fields = (
+        "user__email",
         "user__phone",
         "national_id",
         "user__business__name",

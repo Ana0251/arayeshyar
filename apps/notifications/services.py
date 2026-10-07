@@ -8,6 +8,8 @@ import logging
 
 from django.utils import timezone
 
+from apps.core.utils.dates import to_jalali_date
+
 from .backends import (
     SMSBackendError,
     get_sms_backend,
@@ -90,6 +92,14 @@ def send_sms(
     return log
 
 
+def _jalali_if_date(value) -> str:
+    """اگر date/datetime داده شد شمسی کن؛ رشته را دست‌نخورده برگردان."""
+    from datetime import date, datetime
+    if isinstance(value, (date, datetime)):
+        return to_jalali_date(value)
+    return str(value)
+
+
 # ═══════════════════════════════════════════════════════════════
 #  Templates — پیام‌های آماده
 # ═══════════════════════════════════════════════════════════════
@@ -115,7 +125,7 @@ def send_booking_confirmed_sms(
     message = (
         f"✅ نوبت شما تأیید شد.\n"
         f"📍 {business_name}\n"
-        f"📅 {date_str} ساعت {time_str}\n"
+        f"📅 {_jalali_if_date(date_str)} ساعت {time_str}\n"
         f"آرایشیار"
     )
     return send_sms(phone, message, sms_type=SMSType.BOOKING_CONFIRM)
@@ -131,7 +141,7 @@ def send_booking_cancelled_sms(
     message = (
         f"❌ نوبت شما لغو شد.\n"
         f"📍 {business_name}\n"
-        f"📅 {date_str} ساعت {time_str}\n"
+        f"📅 {_jalali_if_date(date_str)} ساعت {time_str}\n"
         f"آرایشیار"
     )
     return send_sms(phone, message, sms_type=SMSType.BOOKING_CANCEL)
@@ -160,7 +170,7 @@ def send_waiting_list_sms(
     """اطلاع آزاد شدن ساعت."""
     message = (
         f"🎉 یه ساعت توی {business_name} آزاد شد!\n"
-        f"📅 {date_str}\n"
+        f"📅 {_jalali_if_date(date_str)}\n"
         f"برای رزرو سریع وارد شو.\n"
         f"آرایشیار"
     )

@@ -132,3 +132,13 @@ class TicketReplyForm(forms.Form):
                 _("حجم فایل نباید بیشتر از ۵ مگابایت باشه.")
             )
         return f
+class PasswordHelpForm(forms.Form):
+    full_name=forms.CharField(label="نام و نام خانوادگی",max_length=120,widget=forms.TextInput(attrs={"class":INPUT_CLASS,"placeholder":"مثلاً مسعود کرمانشاهی"}))
+    phone=forms.CharField(label="شماره موبایل حساب",max_length=15,widget=forms.TextInput(attrs={"class":INPUT_CLASS,"placeholder":"09123456789","dir":"ltr","inputmode":"numeric"}))
+    note=forms.CharField(label="توضیحات (اختیاری)",required=False,max_length=1000,widget=forms.Textarea(attrs={"class":TEXTAREA_CLASS,"rows":4,"placeholder":"اگر توضیحی برای شناسایی حساب داری بنویس..."}))
+    def clean_phone(self):
+        from apps.core.utils.phone import normalize_phone
+        phone=normalize_phone(self.cleaned_data["phone"])
+        if not phone:
+            raise forms.ValidationError("شماره موبایل معتبر وارد کن.")
+        return phone

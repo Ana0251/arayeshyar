@@ -1,174 +1,94 @@
 /**
- * Service Worker برای PWA آرایشیار.
- *
- * ─── استراتژی: ───
- * - Static assets → Cache First
- * - HTML → Network First + Fallback
- * - Offline → صفحه‌ی offline
+ * Arayeshyar PWA Service Worker
+ * v3: authenticated/management HTML is never served from cache.
  */
-
-const CACHE_VERSION = 'arayeshyar-v1';
+const CACHE_VERSION = 'arayeshyar-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
-const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
-
-// ═══════════════════════════════════════════════════════════════
-//  Pre-cache URLs
-// ═══════════════════════════════════════════════════════════════
+const OFFLINE_CACHE = `${CACHE_VERSION}-offline`;
 
 const PRECACHE_URLS = [
-    '/',
     '/offline/',
     '/manifest.webmanifest',
-    '/static/css/tailwind.css',
-    '/static/js/jalali.js',
-    '/static/js/booking-app.js',
-    '/static/js/booking-datepicker.js',
-    '/static/js/time-picker.js',
-    '/static/js/date-picker.js',
-    '/static/js/common.js',
-    '/static/js/avatar-preview.js',
-    '/static/js/register-activity.js',
-    '/static/js/register-services.js',
-    '/static/js/register-stations.js',
     '/static/icons/icon-192.png',
     '/static/icons/icon-512.png',
     '/static/icons/apple-touch-icon.png',
     '/static/icons/favicon.ico',
 ];
 
-// ═══════════════════════════════════════════════════════════════
-//  Install
-// ═══════════════════════════════════════════════════════════════
-
 self.addEventListener('install', function (event) {
-    console.log('[SW] Installing...');
-
     event.waitUntil(
-        caches.open(STATIC_CACHE)
+        caches.open(OFFLINE_CACHE)
             .then(function (cache) {
-                console.log('[SW] Pre-caching static assets');
-
-                return Promise.all(
-                    PRECACHE_URLS.map(function (url) {
-                        return cache.add(url).catch(function (err) {
-                            console.warn('[SW] Failed to cache:', url, err);
-                        });
-                    })
-                );
+                return Promise.all(PRECACHE_URLS.map(function (url) {
+                    return cache.add(url).catch(function () { return null; });
+                }));
             })
-            .then(function () {
-                return self.skipWaiting();
-            })
+            .then(function () { return self.skipWaiting(); })
     );
 });
-
-// ═══════════════════════════════════════════════════════════════
-//  Activate
-// ═══════════════════════════════════════════════════════════════
 
 self.addEventListener('activate', function (event) {
-    console.log('[SW] Activating...');
-
     event.waitUntil(
         caches.keys()
-            .then(function (cacheNames) {
-                return Promise.all(
-                    cacheNames
-                        .filter(function (name) {
-                            return name !== STATIC_CACHE && name !== DYNAMIC_CACHE;
-                        })
-                        .map(function (name) {
-                            console.log('[SW] Deleting old cache:', name);
-                            return caches.delete(name);
-                        })
-                );
+            .then(function (names) {
+                return Promise.all(names
+                    .filter(function (name) {
+                        return name.startsWith('arayeshyar-') &&
+                            name !== STATIC_CACHE && name !== OFFLINE_CACHE;
+                    })
+                    .map(function (name) { return caches.delete(name); }));
             })
-            .then(function () {
-                return self.clients.claim();
-            })
+            .then(function () { return self.clients.claim(); })
     );
 });
-
-// ═══════════════════════════════════════════════════════════════
-//  Fetch
-// ═══════════════════════════════════════════════════════════════
 
 self.addEventListener('fetch', function (event) {
     const request = event.request;
-    const url = new URL(request.url);
-
-    // ─── فقط GET ───
     if (request.method !== 'GET') return;
 
-    // ─── فقط same-origin ───
-    if (url.origin !== location.origin) return;
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin) return;
 
-    // ─── Admin, API, Debug → Network Only ───
-    if (
-        url.pathname.startsWith('/admin/') ||
-        url.pathname.startsWith('/api/') ||
-        url.pathname.startsWith('/__debug__/') ||
-        url.pathname.startsWith('/data/')
-    ) {
+    // صفحات حساس/داینامیک همیشه مستقیماً از شبکه.
+    const networkOnlyPrefixes = [
+        '/admin/', '/control/', '/business/', '/booking/', '/customers/',
+        '/accounts/', '/support/', '/api/', '/__debug__/', '/data/'
+    ];
+    if (networkOnlyPrefixes.some(function (prefix) { return url.pathname.startsWith(prefix); })) {
+        event.respondWith(fetch(request));
         return;
     }
 
-    // ─── Static assets → Cache First ───
-    if (
-        url.pathname.startsWith('/static/') ||
-        url.pathname.startsWith('/media/')
-    ) {
+    // Static: network-first تا نسخه تازه فوراً اعمال شود.
+    if (url.pathname.startsWith('/static/') || url.pathname.startsWith('/media/')) {
         event.respondWith(
-            caches.match(request).then(function (cached) {
-                if (cached) return cached;
-
-                return fetch(request).then(function (response) {
-                    if (response && response.status === 200) {
-                        const responseClone = response.clone();
-                        caches.open(STATIC_CACHE).then(function (cache) {
-                            cache.put(request, responseClone);
-                        });
+            fetch(request)
+                .then(function (response) {
+                    if (response && response.ok) {
+                        const clone = response.clone();
+                        caches.open(STATIC_CACHE).then(function (cache) { cache.put(request, clone); });
                     }
                     return response;
-                });
+                })
+                .catch(function () { return caches.match(request); })
+        );
+        return;
+    }
+
+    // HTML عمومی: network-first، فقط در حالت آفلاین fallback.
+    const accept = request.headers.get('accept') || '';
+    if (accept.includes('text/html')) {
+        event.respondWith(
+            fetch(request).catch(function () {
+                return caches.match('/offline/');
             })
         );
         return;
     }
 
-    // ─── HTML → Network First + Fallback ───
-    const acceptHeader = request.headers.get('accept') || '';
-    if (acceptHeader.includes('text/html')) {
-        event.respondWith(
-            fetch(request)
-                .then(function (response) {
-                    if (response && response.status === 200) {
-                        const responseClone = response.clone();
-                        caches.open(DYNAMIC_CACHE).then(function (cache) {
-                            cache.put(request, responseClone);
-                        });
-                    }
-                    return response;
-                })
-                .catch(function () {
-                    return caches.match(request).then(function (cached) {
-                        return cached || caches.match('/offline/');
-                    });
-                })
-        );
-        return;
-    }
-
-    // ─── بقیه → Network ───
     event.respondWith(fetch(request));
 });
 
-// ═══════════════════════════════════════════════════════════════
-//  Message
-// ═══════════════════════════════════════════════════════════════
-
 self.addEventListener('message', function (event) {
-    if (event.data && event.data.type === 'SKIP_WAITING') {
-        self.skipWaiting();
-    }
+    if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });

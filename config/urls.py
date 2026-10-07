@@ -45,13 +45,15 @@ def service_worker_view(request):
 # ═══════════════════════════════════════════════════════════════
 
 urlpatterns = [
+    path("control/", include("apps.core.control_urls")),
     path("admin/", admin.site.urls),
     path("", include("apps.core.urls")),
     path("auth/", include("apps.accounts.urls")),
     path("", include("apps.business.urls")),
     path("", include("apps.booking.urls")),
     path("", include("apps.customers.urls")),
-    path("", include("apps.support.urls")),   # ← جدید
+    path("", include("apps.support.urls")),
+    path("", include("apps.blog.urls")),
 
     path("manifest.webmanifest", manifest_view, name="manifest"),
     path("sw.js", service_worker_view, name="sw"),

@@ -194,3 +194,9 @@ class TicketAttachmentAdmin(admin.ModelAdmin):
     @admin.display(description=_("حجم"))
     def size_display(self, obj: TicketAttachment) -> str:
         return obj.size_display
+from .models import PasswordResetRequest
+@admin.register(PasswordResetRequest)
+class PasswordResetRequestAdmin(admin.ModelAdmin):
+    list_display=("phone","full_name","status","user","created_at","handled_at")
+    list_filter=("status",)
+    search_fields=("phone","full_name","note")

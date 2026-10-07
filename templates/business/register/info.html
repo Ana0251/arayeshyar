@@ -61,17 +61,21 @@
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-darktext mb-1.5">
-                            شماره موبایل
+                            ایمیل (اختیاری)
                         </label>
-                        <input type="text"
-                               value="{{ request.user.phone }}"
-                               disabled
-                               dir="ltr"
-                               class="w-full px-4 py-3 rounded-xl border border-black/10 bg-cream/50 text-center font-mono text-darktext/60">
-                        <p class="text-xs text-darktext/50 mt-1">
-                            شماره‌ی حسابت (قابل تغییر نیست)
-                        </p>
+                        <input type="email" value="{{ request.user.email }}" disabled dir="ltr"
+                               class="w-full px-4 py-3 rounded-xl border border-black/10 bg-cream/50 text-center text-darktext/60">
+                        <p class="text-xs text-darktext/50 mt-1">برای ورود استفاده نمی‌شود؛ بعداً برای بازیابی و اعلان‌ها قابل استفاده است.</p>
                     </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        شماره موبایل مدیر / ورود <span class="text-danger">*</span>
+                    </label>
+                    {{ form.owner_phone }}
+                    {% if form.owner_phone.errors %}<p class="text-danger text-xs mt-1">{{ form.owner_phone.errors.0 }}</p>{% endif %}
+                    <p class="text-xs text-darktext/50 mt-1">{{ form.owner_phone.help_text }}</p>
                 </div>
 
                 {% if is_salon %}

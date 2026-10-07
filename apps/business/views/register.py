@@ -385,6 +385,7 @@ def register_business_info(request: HttpRequest) -> HttpResponse:
             request.POST,
             request.FILES,
             is_salon=is_salon,
+            user=request.user,
         )
 
         if form.is_valid():
@@ -392,6 +393,7 @@ def register_business_info(request: HttpRequest) -> HttpResponse:
             info_data = {
                 "name": form.cleaned_data["name"],
                 "owner_name": form.cleaned_data.get("owner_name", ""),
+                "owner_phone": form.cleaned_data["owner_phone"],
                 "landline": form.cleaned_data.get("landline", ""),
                 "region": form.cleaned_data["region"],
                 "address": form.cleaned_data["address"],
@@ -427,7 +429,7 @@ def register_business_info(request: HttpRequest) -> HttpResponse:
                     _("خطا در ثبت اطلاعات. لطفاً دوباره امتحان کن."),
                 )
     else:
-        form = RegisterBusinessInfoForm(is_salon=is_salon)
+        form = RegisterBusinessInfoForm(is_salon=is_salon, user=request.user)
 
     return render(
         request,

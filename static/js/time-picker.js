@@ -28,6 +28,8 @@
             initMinute = pad2(parseInt(parts[1], 10));
         }
 
+        var wasRequired = input.hasAttribute('required');
+
         // ─── ⚡ required رو حذف کن (چون input مخفی میشه و مرورگر نمیتونه focus کنه) ───
         input.removeAttribute('required');
 
@@ -80,8 +82,16 @@
         minutePlaceholder.textContent = 'دقیقه';
         minuteSelect.appendChild(minutePlaceholder);
 
-        for (var m = 0; m < 60; m += minuteStep) {
-            var mm = pad2(m);
+        // اگر مقدار فعلی روی گام ۱۵ دقیقه‌ای نبود (مثلاً 09:10)، همان دقیقه را هم اضافه کن
+        var minuteValues = [];
+        for (var mv = 0; mv < 60; mv += minuteStep) minuteValues.push(pad2(mv));
+        if (initMinute && minuteValues.indexOf(initMinute) === -1) {
+            minuteValues.push(initMinute);
+            minuteValues.sort();
+        }
+
+        for (var mi = 0; mi < minuteValues.length; mi++) {
+            var mm = minuteValues[mi];
             var opt2 = document.createElement('option');
             opt2.value = mm;
             opt2.textContent = mm;
@@ -104,6 +114,11 @@
             }
         }
 
+        if (wasRequired) {
+            hourSelect.required = true;
+            minuteSelect.required = true;
+        }
+
         hourSelect.addEventListener('change', updateValue);
         minuteSelect.addEventListener('change', updateValue);
 
@@ -120,9 +135,15 @@
 
     function initTimePickers(root) {
         root = root || document;
-        var inputs = root.querySelectorAll(
-            'input[type="time"][data-time-picker]:not([data-time-init])'
-        );
+        var inputs = [];
+        if (root.matches && root.matches('input[type="time"][data-time-picker]:not([data-time-init])')) {
+            inputs.push(root);
+        }
+        if (root.querySelectorAll) {
+            root.querySelectorAll('input[type="time"][data-time-picker]:not([data-time-init])').forEach(function (el) {
+                if (inputs.indexOf(el) === -1) inputs.push(el);
+            });
+        }
         inputs.forEach(initTimePicker);
     }
 
@@ -135,7 +156,33 @@
     }
 
     document.body.addEventListener('htmx:afterSwap', function (evt) {
-        initTimePickers(evt.detail.target);
+        initTimePickers(evt.detail && evt.detail.target ? evt.detail.target : document);
+    });
+    document.body.addEventListener('htmx:afterSettle', function (evt) {
+        initTimePickers(evt.detail && evt.detail.target ? evt.detail.target : document);
+    });
+
+    // reset() روی فرم، selectهای سفارشی را به حالت اولیه برمی‌گرداند.
+    document.addEventListener('reset', function (event) {
+        var form = event.target;
+        if (!form || !form.matches || !form.matches('form')) return;
+        setTimeout(function () {
+            form.querySelectorAll('.time-picker-wrapper').forEach(function (wrapper) {
+                var original = wrapper.querySelector('input[data-time-picker]');
+                var selects = wrapper.querySelectorAll('select.time-picker-select');
+                var hidden = wrapper.querySelector('input[type="hidden"]');
+                var raw = original ? (original.defaultValue || '') : '';
+                var hour = '', minute = '';
+                if (/^\d{1,2}:\d{2}/.test(raw)) {
+                    var parts = raw.split(':');
+                    hour = pad2(parseInt(parts[0], 10));
+                    minute = pad2(parseInt(parts[1], 10));
+                }
+                if (selects[0]) selects[0].value = hour;
+                if (selects[1]) selects[1].value = minute;
+                if (hidden) hidden.value = hour && minute ? hour + ':' + minute : '';
+            });
+        }, 0);
     });
 
     window.TimePicker = { init: initTimePickers };

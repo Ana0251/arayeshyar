@@ -1,0 +1,154 @@
+{# ═══════════════ قدم ۵: ساعت ═══════════════ #}
+    {% if selected_service and has_date_param %}
+        <div class="bg-white rounded-2xl shadow-md mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5 rounded-t-2xl flex items-center justify-between">
+                <h2 class="font-bold text-primary">
+                    ⏰ {% if is_salon %}قدم ۵{% else %}قدم ۴{% endif %}: ساعت رو انتخاب کن
+                </h2>
+                <span class="text-xs text-darktext/60" x-show="selectedTime" x-cloak>
+                    ✓ <span x-text="selectedTime"></span>
+                </span>
+            </div>
+
+            <div class="p-5">
+                {% if slots %}
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
+                        {% for slot in slots %}
+                            <button type="button"
+                                    @click="selectTime('{{ slot.time|time:"H:i" }}')"
+                                    class="border-2 rounded-xl py-3 px-2 text-center font-bold transition-all
+                                           {% if slot.status == 'available' %}
+                                               bg-white text-primary border-black/10 hover:border-accent hover:bg-accent/5
+                                           {% else %}
+                                               bg-darktext/5 text-darktext/30 border-transparent cursor-not-allowed
+                                           {% endif %}"
+                                    :class="selectedTime === '{{ slot.time|time:"H:i" }}' ?
+                                        'bg-accent text-primary border-accent ring-2 ring-accent/30 scale-105' : ''"
+                                    {% if slot.status != 'available' %}disabled{% endif %}>
+                                <div class="text-base font-mono" dir="ltr">{{ slot.time|time:"H:i" }}</div>
+                            </button>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-6">
+                        <div class="text-3xl mb-2">😴</div>
+                        <p class="text-darktext/60 text-sm">برای این روز اسلات آزادی وجود نداره.</p>
+                        <p class="text-xs text-darktext/40 mt-1">یه تاریخ دیگه انتخاب کن.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    {# ═══════════════ قدم نهایی: اطلاعات مشتری ═══════════════ #}
+    {% if selected_service and has_date_param and slots %}
+        <div class="bg-white rounded-2xl shadow-md mb-5">
+            <div class="bg-cream px-5 py-3 border-b border-black/5 rounded-t-2xl">
+                <h2 class="font-bold text-primary">📝 {% if request.user.is_authenticated %}اطلاعاتت رو تأیید کن{% else %}نوبتت رو ادامه بده{% endif %}</h2>
+            </div>
+
+            <form method="post"
+                  hx-post="{% url 'booking:book' business.slug %}"
+                  hx-target="#booking-flow"
+                  hx-swap="outerHTML"
+                  hx-disabled-elt="find button[type='submit']"
+                  class="p-5 space-y-5">
+                {% csrf_token %}
+
+                <input type="hidden" name="service_id" :value="selectedServiceId">
+                <input type="hidden" name="staff_id" :value="selectedStaffId || ''">
+                <input type="hidden" name="start_at" :value="startAt">
+
+                {% if form.non_field_errors %}
+                    <div class="bg-danger/10 border border-danger/30 text-danger text-sm rounded-xl p-3">
+                        {% for error in form.non_field_errors %}<p>⚠️ {{ error }}</p>{% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if not request.user.is_authenticated %}
+                    <div class="rounded-xl border border-accent/30 bg-accent/10 px-4 py-3 text-sm text-primary">
+                        <div class="font-bold mb-1">✨ اولین رزروت؟ همین‌جا حسابت ساخته می‌شه</div>
+                        <p class="text-xs text-darktext/70 leading-6">
+                            نام، شماره موبایل و یک رمز ساده وارد کن. اگر قبلاً حساب داری، همان شماره و رمز قبلی را بزن.
+                            ایمیل فعلاً اختیاریه و بعداً هم از پروفایل قابل ویرایش خواهد بود.
+                        </p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.customer_name.label }}</label>
+                            {{ form.customer_name }}
+                            {% if form.customer_name.errors %}<p class="text-danger text-xs mt-1">{{ form.customer_name.errors.0 }}</p>{% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.customer_phone.label }}</label>
+                            {{ form.customer_phone }}
+                            {% if form.customer_phone.errors %}<p class="text-danger text-xs mt-1">{{ form.customer_phone.errors.0 }}</p>{% endif %}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.customer_password.label }}</label>
+                            {{ form.customer_password }}
+                            {% if form.customer_password.errors %}<p class="text-danger text-xs mt-1">{{ form.customer_password.errors.0 }}</p>{% endif %}
+                            <p class="text-xs text-darktext/45 mt-1">{{ form.customer_password.help_text }}</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.customer_email.label }}</label>
+                            {{ form.customer_email }}
+                            {% if form.customer_email.errors %}<p class="text-danger text-xs mt-1">{{ form.customer_email.errors.0 }}</p>{% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                {% if request.user.is_authenticated %}
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">
+                                {{ form.customer_name.label }}
+                            </label>
+                            {{ form.customer_name }}
+                            {% if form.customer_name.errors %}
+                                <p class="text-danger text-xs mt-1">{{ form.customer_name.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-darktext mb-1.5">
+                                {{ form.customer_phone.label }}
+                            </label>
+                            {{ form.customer_phone }}
+                            {% if form.customer_phone.errors %}
+                                <p class="text-danger text-xs mt-1">{{ form.customer_phone.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div>
+                    <label class="block text-sm font-bold text-darktext mb-1.5">
+                        {{ form.customer_note.label }}
+                    </label>
+                    {{ form.customer_note }}
+                </div>
+
+                <button type="submit"
+                        :disabled="!canSubmit"
+                        class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl
+                               hover:opacity-90 active:scale-[0.98] transition
+                               disabled:opacity-40 disabled:cursor-not-allowed
+                               htmx-request:opacity-60">
+                    <span x-show="!selectedTime">اول یه ساعت انتخاب کن</span>
+                    <span x-show="selectedTime" x-cloak>
+                        {% if request.user.is_authenticated %}ثبت نوبت{% else %}ساخت حساب و ثبت نوبت{% endif %} — ساعت <span x-text="selectedTime"></span>
+                    </span>
+                </button>
+
+                <p class="text-xs text-darktext/50 text-center">
+                    {% if business.auto_confirm %}
+                        نوبتت مستقیم تأیید میشه. ✅
+                    {% else %}
+                        نوبتت بعد از تأیید کسب‌وکار نهایی میشه.
+                    {% endif %}
+                </p>
+            </form>
+        </div>
+    {% endif %}

@@ -24,25 +24,8 @@ from ._helpers import htmx_error, htmx_response, is_htmx
 logger = logging.getLogger(__name__)
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Check: فقط شخصی
-# ═══════════════════════════════════════════════════════════════
-
-
-def _check_not_salon(business):
-    """
-    اگه کسب‌وکار سالن باشه، به شیفت‌ها redirect کن.
-
-    Returns:
-        HttpResponse اگه سالن بود، وگرنه None.
-    """
-    if business.is_salon:
-        messages.info(
-            _("سالن‌ها باید از «شیفت کارمندها» استفاده کنن، نه برنامه هفتگی."),
-        )
-        return redirect("business:manage_staff_schedules")
-    return None
-
+# برنامه هفتگی برای همه کسب‌وکارها استفاده می‌شود.
+# در سالن، این بازه «ساعت باز بودن کل سالن» است و شیفت کارمندها داخل آن اعمال می‌شود.
 
 # ═══════════════════════════════════════════════════════════════
 #  Manage Hours
@@ -52,13 +35,8 @@ def _check_not_salon(business):
 @business_required
 @require_http_methods(["GET", "POST"])
 def manage_hours(request: HttpRequest) -> HttpResponse:
-    """مدیریت برنامه هفتگی (فقط شخصی)."""
+    """مدیریت ساعت کاری کلی کسب‌وکار؛ برای سالن نقش سقف فعالیت را دارد."""
     business = request.user.business
-
-    # ─── اگه سالن باشه، redirect ───
-    redirect_response = _check_not_salon(business)
-    if redirect_response:
-        return redirect_response
 
     hours = business.working_hours.filter(
         station__isnull=True
@@ -142,11 +120,6 @@ def delete_working_hours(
 ) -> HttpResponse:
     """حذف برنامه هفتگی."""
     business = request.user.business
-
-    # ─── اگه سالن باشه، redirect ───
-    redirect_response = _check_not_salon(business)
-    if redirect_response:
-        return redirect_response
 
     wh = get_object_or_404(
         WorkingHours,

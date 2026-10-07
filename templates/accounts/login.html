@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+{% block title %}ورود به آرایشیار{% endblock %}
+{% block content %}
+<div class="max-w-md mx-auto mt-8">
+  <div class="text-center mb-6">
+    <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-3xl font-bold text-primary mx-auto mb-3">🔐</div>
+    <h1 class="text-2xl font-bold text-primary">ورود به آرایشیار</h1>
+    <p class="text-sm text-darktext/60 mt-2 leading-relaxed">با شماره موبایل و رمز عبورت وارد شو.</p>
+  </div>
+
+  <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-black/5">
+    <div class="bg-primary text-white px-5 py-3"><h2 class="font-bold">ورود</h2></div>
+    <form method="post" class="p-5 space-y-4">
+      {% csrf_token %}
+      {% if next_url %}<input type="hidden" name="next" value="{{ next_url }}">{% endif %}
+      <div>
+        <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.phone.label }}</label>
+        {{ form.phone }}
+        {% if form.phone.errors %}<p class="text-danger text-xs mt-1">{{ form.phone.errors.0 }}</p>{% endif %}
+      </div>
+      <div>
+        <label class="block text-sm font-bold text-darktext mb-1.5">{{ form.password.label }}</label>
+        {{ form.password }}
+        {% if form.password.errors %}<p class="text-danger text-xs mt-1">{{ form.password.errors.0 }}</p>{% endif %}
+      </div>
+      <button type="submit" class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 active:scale-[0.98] transition">ورود</button>
+      <div class="text-center"><a href="{% url 'support:password_help' %}" class="text-sm font-bold text-primary hover:text-accent">رمز عبورت رو فراموش کردی؟</a></div>
+    </form>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-3 mt-5">
+    <a href="{% url 'accounts:register_customer' %}" class="bg-white border border-primary/10 rounded-2xl p-4 text-center hover:shadow-sm transition">
+      <div class="text-2xl mb-1">👤</div>
+      <div class="font-bold text-primary">ثبت‌نام مشتری</div>
+      <div class="text-xs text-darktext/55 mt-1">حساب بساز و نوبت‌هات رو یکجا ببین.</div>
+    </a>
+    <a href="{% url 'accounts:register_business' %}" class="bg-cream border border-black/5 rounded-2xl p-4 text-center hover:shadow-sm transition">
+      <div class="text-2xl mb-1">💈</div>
+      <div class="font-bold text-primary">ثبت‌نام آرایشگر / سالن</div>
+      <div class="text-xs text-darktext/55 mt-1">پنل کسب‌وکارت رو بساز.</div>
+    </a>
+  </div>
+
+  <div class="hidden">
+    <div class="font-bold text-primary mb-1">آرایشگر یا صاحب سالن هستی؟</div>
+    <p class="text-xs text-darktext/60 mb-3">برای اولین بار، حساب مدیریتی خودت رو بساز و بعد اطلاعات مجموعه رو تکمیل کن.</p>
+    <a href="{% url 'accounts:register_business' %}" class="inline-flex justify-center bg-primary text-white font-bold px-5 py-3 rounded-xl hover:opacity-90 transition">ثبت‌نام آرایشگر / سالن</a>
+  </div>
+</div>
+{% endblock %}

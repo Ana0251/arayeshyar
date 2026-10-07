@@ -5,6 +5,7 @@
 import logging
 from datetime import date, datetime, time, timedelta
 
+from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.utils import timezone
@@ -12,7 +13,13 @@ from django.utils import timezone
 from apps.accounts.models import User
 from apps.business.models import Business, Service, Staff, Station
 
-from ..constants import AppointmentStatus
+from ..constants import (
+    AppointmentStatus,
+    BOOKING_RATE_WINDOW_SECONDS,
+    MAX_ACTIVE_APPOINTMENTS_PER_CUSTOMER,
+    MAX_BOOKINGS_PER_WINDOW,
+    MAX_GLOBAL_ACTIVE_APPOINTMENTS_PER_CUSTOMER,
+)
 from ..models import Appointment, BlockedCustomer
 from .availability import AvailabilityService
 
@@ -42,6 +49,14 @@ class SlotNotAvailableError(BookingError):
 
 class DuplicateBookingError(BookingError):
     """مشتری سر این ساعت نوبت دیگه داره."""
+
+
+class TooManyActiveAppointmentsError(BookingError):
+    """تعداد نوبت‌های فعال مشتری بیش از حد مجازه."""
+
+
+class BookingRateLimitError(BookingError):
+    """مشتری در بازه کوتاه تعداد زیادی رزرو موفق ثبت کرده."""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -116,7 +131,12 @@ class BookingService:
         if BlockedCustomer.objects.is_blocked(self.business, customer.phone):
             raise CustomerBlockedError("امکان رزرو برای شما وجود نداره.")
 
-        # ─── ۳. تعیین staff ───
+        # ─── ۳. ضد سوءاستفاده / محدودیت رزرو مشتری ───
+        # این کنترل عمداً داخل Service است تا با تغییر View/HTMX قابل دور زدن نباشد.
+        if not force:
+            self._enforce_customer_booking_limits(customer)
+
+        # ─── ۴. تعیین staff ───
         if not staff:
             service_staff = self._get_service_staff(service)
 
@@ -202,6 +222,9 @@ class BookingService:
                 "این ساعت همین الان رزرو شد. لطفاً یه ساعت دیگه انتخاب کن."
             ) from exc
 
+        if not force:
+            self._record_successful_booking(customer)
+
         logger.info(
             f"Appointment #{appointment.pk} created: "
             f"{customer.phone} → {self.business.name} @ {start_at}"
@@ -244,6 +267,64 @@ class BookingService:
     # ═══════════════════════════════════════════════════════════
     #  Helpers
     # ═══════════════════════════════════════════════════════════
+
+    def _enforce_customer_booking_limits(self, customer: User) -> None:
+        """
+        محدودیت‌های ضد رزرو مزاحم.
+
+        نوبت فعال یعنی PENDING/CONFIRMED که هنوز پایانش نگذشته باشد.
+        استفاده از end_at به‌جای start_at باعث می‌شود نوبتی که در حال اجراست هم
+        تا پایان واقعی‌اش فعال حساب شود.
+        """
+        now = timezone.now()
+        active_statuses = [
+            AppointmentStatus.PENDING,
+            AppointmentStatus.CONFIRMED,
+        ]
+
+        # استفاده از customer_id/business_id صریح است و به هیچ Manager سفارشی وابسته نیست.
+        business_active_count = Appointment.objects.filter(
+            customer_id=customer.pk,
+            business_id=self.business.pk,
+            status__in=active_statuses,
+            end_at__gt=now,
+        ).count()
+
+        if business_active_count >= MAX_ACTIVE_APPOINTMENTS_PER_CUSTOMER:
+            raise TooManyActiveAppointmentsError(
+                f"شما در حال حاضر {MAX_ACTIVE_APPOINTMENTS_PER_CUSTOMER} نوبت فعال "
+                "در این مجموعه دارید. برای رزرو جدید، یکی از نوبت‌های قبلی را "
+                "لغو کنید یا بعد از انجام آن دوباره تلاش کنید."
+            )
+
+        global_active_count = Appointment.objects.filter(
+            customer_id=customer.pk,
+            status__in=active_statuses,
+            end_at__gt=now,
+        ).count()
+
+        if global_active_count >= MAX_GLOBAL_ACTIVE_APPOINTMENTS_PER_CUSTOMER:
+            raise TooManyActiveAppointmentsError(
+                f"شما در حال حاضر {MAX_GLOBAL_ACTIVE_APPOINTMENTS_PER_CUSTOMER} نوبت فعال دارید. "
+                "برای ثبت نوبت جدید، ابتدا یکی از نوبت‌های فعلی را لغو کنید یا منتظر انجام آن بمانید."
+            )
+
+        # نرخ رزرو موفق در بازه کوتاه. کلید فقط بر اساس customer است تا با رفتن
+        # بین چند سالن نتوان محدودیت را دور زد.
+        rate_key = f"booking:successful:{customer.pk}"
+        recent_successes = int(cache.get(rate_key, 0) or 0)
+        if recent_successes >= MAX_BOOKINGS_PER_WINDOW:
+            raise BookingRateLimitError(
+                "در مدت کوتاهی چند نوبت ثبت کرده‌اید. لطفاً حدود ۱۰ دقیقه بعد دوباره تلاش کنید."
+            )
+
+    def _record_successful_booking(self, customer: User) -> None:
+        """فقط رزرو موفق را در Rate Limit ثبت می‌کند؛ خطاهای فرم جریمه نمی‌شوند."""
+        rate_key = f"booking:successful:{customer.pk}"
+        try:
+            cache.incr(rate_key)
+        except ValueError:
+            cache.set(rate_key, 1, timeout=BOOKING_RATE_WINDOW_SECONDS)
 
     def _get_service_staff(self, service: Service) -> list[Staff]:
         """

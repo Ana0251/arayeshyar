@@ -9,6 +9,8 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 
 from apps.core.widgets import JalaliDateInput, JalaliTimeInput
+from apps.core.utils.phone import normalize_phone
+from apps.accounts.models import User
 from .constants import ProfileField
 from .models import (
     ActivityType,
@@ -63,17 +65,27 @@ SELECT_CLASS = (
 
 
 class BusinessProfileForm(forms.ModelForm):
-    """
-    فرم ویرایش پروفایل کسب‌وکار.
+    """فرم ویرایش پروفایل و اطلاعات تماس صاحب کسب‌وکار."""
 
-    ─── توجه: ───
-    فیلدهای حساس (name, address, region, bio, avatar, ...)
-    مستقیم ذخیره نمیشن. برای اینا یه ProfileChangeRequest ساخته میشه.
-
-    ─── فیلدهای غیرحساس: ───
-    - landline (تلفن ثابت)
-    - owner_name (اسم صاحب)
-    """
+    login_email = forms.EmailField(
+        label=_("ایمیل (اختیاری)"),
+        required=False,
+        disabled=False,
+        help_text=_("برای ورود استفاده نمی‌شود؛ برای بازیابی حساب و اعلان‌های آینده نگهش می‌داریم."),
+        widget=forms.EmailInput(attrs={"class": INPUT_CLASS, "dir": "ltr"}),
+    )
+    mobile = forms.CharField(
+        label=_("شماره موبایل مدیر / ورود"),
+        required=True,
+        max_length=15,
+        help_text=_("این شماره شناسه ورود شماست و برای جست‌وجو و تماس هم استفاده می‌شود."),
+        widget=forms.TextInput(attrs={
+            "class": INPUT_CLASS,
+            "placeholder": "09123456789",
+            "dir": "ltr",
+            "inputmode": "numeric",
+        }),
+    )
 
     class Meta:
         model = Business
@@ -114,6 +126,37 @@ class BusinessProfileForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.owner_id:
+            self.fields["login_email"].initial = self.instance.owner.email
+            self.fields["mobile"].initial = self.instance.owner.phone or ""
+
+    def clean_login_email(self):
+        email = (self.cleaned_data.get("login_email") or "").strip().lower()
+        if not email:
+            return ""
+        qs = User.objects.filter(email__iexact=email)
+        if self.instance and self.instance.pk and self.instance.owner_id:
+            qs = qs.exclude(pk=self.instance.owner_id)
+        if qs.exists():
+            raise forms.ValidationError(_("این ایمیل قبلاً برای حساب دیگری ثبت شده."))
+        return email
+
+    def clean_mobile(self):
+        raw = (self.cleaned_data.get("mobile") or "").strip()
+        if not raw:
+            return ""
+        normalized = normalize_phone(raw)
+        if not normalized:
+            raise forms.ValidationError(_("شماره موبایل نامعتبره. فرمت صحیح: 09XXXXXXXXX"))
+        qs = User.objects.filter(phone=normalized)
+        if self.instance and self.instance.pk and self.instance.owner_id:
+            qs = qs.exclude(pk=self.instance.owner_id)
+        if qs.exists():
+            raise forms.ValidationError(_("این شماره موبایل قبلاً برای حساب دیگری ثبت شده."))
+        return normalized
+
 
 class AvatarForm(forms.ModelForm):
     """فرم آپلود آواتار (جداگانه برای upload)."""
@@ -142,8 +185,9 @@ class ServiceForm(forms.ModelForm):
 
     class Meta:
         model = Service
-        fields = ["name", "duration", "price", "is_active"]
+        fields = ["station", "name", "duration", "price", "is_active"]
         widgets = {
+            "station": forms.Select(attrs={"class": SELECT_CLASS}),
             "name": forms.TextInput(
                 attrs={"class": INPUT_CLASS, "placeholder": "مثلاً: کوتاهی مو"}
             ),
@@ -166,6 +210,27 @@ class ServiceForm(forms.ModelForm):
             ),
             "is_active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
         }
+
+    def __init__(self, *args, business=None, show_station=True, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.business = business
+
+        if business:
+            self.fields["station"].queryset = business.stations.filter(
+                is_active=True,
+            ).order_by("order", "name")
+
+        if not show_station:
+            self.fields.pop("station", None)
+        else:
+            self.fields["station"].empty_label = "انتخاب اتاق / ایستگاه"
+            self.fields["station"].label = _("اتاق / ایستگاه")
+
+    def clean_station(self):
+        station = self.cleaned_data.get("station")
+        if self.business and station and station.business_id != self.business.id:
+            raise forms.ValidationError(_("اتاق انتخاب‌شده متعلق به این کسب‌وکار نیست."))
+        return station
 
     def clean_duration(self) -> int:
         """مدت باید بین ۵ و ۶۰۰ باشه."""
@@ -456,7 +521,21 @@ class RegisterActivityForm(forms.Form):
 
 
 class RegisterBusinessInfoForm(forms.ModelForm):
-    """مرحله ۵: اطلاعات پایه کسب‌وکار."""
+    """مرحله ۵: اطلاعات پایه کسب‌وکار + شماره تماس مدیر."""
+
+    owner_phone = forms.CharField(
+        label=_("شماره موبایل مدیر"),
+        max_length=20,
+        widget=forms.TextInput(attrs={
+            "class": INPUT_CLASS,
+            "type": "tel",
+            "inputmode": "numeric",
+            "autocomplete": "tel",
+            "dir": "ltr",
+            "placeholder": "09123456789",
+        }),
+        help_text=_("این شماره شناسه ورود مدیر و شماره تماس مجموعه است."),
+    )
 
     class Meta:
         model = Business
@@ -507,17 +586,31 @@ class RegisterBusinessInfoForm(forms.ModelForm):
             ),
         }
 
-    def __init__(self, *args, is_salon: bool = False, **kwargs):
+    def __init__(self, *args, is_salon: bool = False, user=None, **kwargs):
         """
         ─── پارامتر is_salon: ───
         اگه سالن نباشه، فیلدهای پروانه کسب و عکس ورودی اختیاری میشن.
         """
         super().__init__(*args, **kwargs)
         self.is_salon = is_salon
+        self.user = user
+        if user and user.phone and not self.is_bound:
+            self.fields["owner_phone"].initial = user.phone
 
         if not is_salon:
             self.fields["business_license"].required = False
             self.fields["entrance_photo"].required = False
+
+    def clean_owner_phone(self):
+        phone = normalize_phone((self.cleaned_data.get("owner_phone") or "").strip())
+        if not phone:
+            raise forms.ValidationError(_("شماره موبایل معتبر نیست. فرمت صحیح: 09XXXXXXXXX"))
+        qs = User.objects.filter(phone=phone)
+        if self.user:
+            qs = qs.exclude(pk=self.user.pk)
+        if qs.exists():
+            raise forms.ValidationError(_("این شماره موبایل قبلاً برای حساب دیگری ثبت شده."))
+        return phone
             
 # ═══════════════════════════════════════════════════════════════
 #  PaymentForm
@@ -607,10 +700,20 @@ class StaffScheduleForm(forms.ModelForm):
         self.station = station
 
         if business:
-            self.fields["staff"].queryset = Staff.objects.filter(
-                business=business,
-                is_active=True,
-            ).order_by("order", "name")
+            qs = Staff.objects.filter(business=business, is_active=True)
+            if station:
+                eligible_ids = StaffService.objects.filter(
+                    staff__business=business,
+                    station=station,
+                    is_active=True,
+                ).values_list("staff_id", flat=True)
+                qs = qs.filter(pk__in=eligible_ids)
+                if self.instance and self.instance.pk and self.instance.staff_id:
+                    qs = Staff.objects.filter(
+                        business=business,
+                        pk__in=set(eligible_ids) | {self.instance.staff_id},
+                    )
+            self.fields["staff"].queryset = qs.distinct().order_by("order", "name")
 
     def clean(self) -> dict:
         """اعتبارسنجی."""
@@ -660,3 +763,57 @@ class StaffServiceForm(forms.ModelForm):
                 business=business,
                 is_active=True,
             ).order_by("order", "name")
+# ═══════════════════════════════════════════════════════════════
+#  Staff Management Form
+# ═══════════════════════════════════════════════════════════════
+
+class StaffManagementForm(forms.ModelForm):
+    """فرم افزودن/ویرایش کارمند همراه با تخصیص خدمات."""
+
+    services = forms.ModelMultipleChoiceField(
+        label=_("خدمات قابل ارائه"),
+        queryset=Service.objects.none(),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+        help_text=_("خدماتی را که این کارمند ارائه می‌دهد انتخاب کن."),
+    )
+
+    class Meta:
+        model = Staff
+        fields = ["name", "phone", "avatar", "bio", "is_active"]
+        widgets = {
+            "name": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "مثلاً: سارا محمدی"}),
+            "phone": forms.TextInput(attrs={"class": INPUT_CLASS, "placeholder": "09123456789", "dir": "ltr", "inputmode": "numeric"}),
+            "avatar": forms.ClearableFileInput(attrs={"class": INPUT_CLASS, "accept": "image/*"}),
+            "bio": forms.Textarea(attrs={"class": TEXTAREA_CLASS, "rows": 3, "placeholder": "مثلاً: متخصص رنگ و لایت"}),
+            "is_active": forms.CheckboxInput(attrs={"class": CHECKBOX_CLASS}),
+        }
+
+    def __init__(self, *args, business=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.business = business
+        if business:
+            self.fields["services"].queryset = Service.objects.filter(
+                business=business,
+                is_active=True,
+                station__is_active=True,
+            ).select_related("station").order_by("station__order", "station__name", "order", "name")
+            self.fields["services"].label_from_instance = (
+                lambda service: f"{service.name} — {service.station.name}"
+            )
+
+        if self.instance and self.instance.pk:
+            self.fields["services"].initial = Service.objects.filter(
+                staff_services__staff=self.instance,
+                staff_services__is_active=True,
+            ).distinct()
+
+    def clean_phone(self):
+        from apps.core.utils.phone import normalize_phone
+        raw = (self.cleaned_data.get("phone") or "").strip()
+        if not raw:
+            return ""
+        normalized = normalize_phone(raw)
+        if not normalized:
+            raise forms.ValidationError(_("شماره موبایل نامعتبره. فرمت صحیح: 09XXXXXXXXX"))
+        return normalized

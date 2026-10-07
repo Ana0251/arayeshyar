@@ -1,103 +1,64 @@
 {% extends 'base.html' %}
 {% load jalali %}
-
-{% block title %}کسب‌وکارهای من — آرایشیار{% endblock %}
-
+{% block title %}آرایشگرها و سالن‌های من — آرایشیار{% endblock %}
 {% block content %}
+<div class="relative overflow-hidden bg-primary rounded-3xl p-5 sm:p-7 text-white mb-5 shadow-lg">
+  <div class="absolute -left-10 -top-10 w-32 h-32 rounded-full bg-accent/20"></div>
+  <div class="relative">
+    <div class="text-3xl mb-2">💇‍♀️✨</div>
+    <h1 class="text-2xl font-black">آرایشگرها و سالن‌های من</h1>
+    <p class="text-sm text-white/70 mt-2 max-w-xl">شماره موبایل آرایشگر یا صاحب سالن را وارد کن، پیداش کن و برای رزروهای بعدی ذخیره‌اش کن.</p>
+  </div>
+</div>
 
-    <div class="mb-5">
-        <h1 class="text-2xl font-bold text-primary">💼 کسب‌وکارهای من</h1>
-        <p class="text-sm text-darktext/60 mt-1">
-            کسب‌وکارهایی که ازشون نوبت گرفتی یا ذخیره کردی.
-        </p>
+<div class="bg-white rounded-2xl shadow-md p-4 sm:p-5 mb-6 border border-black/5">
+  <form method="get" class="space-y-3">
+    <label class="block text-sm font-bold text-primary">🔎 جست‌وجو فقط با شماره موبایل</label>
+    <div class="flex flex-col sm:flex-row gap-2">
+      <input name="q" value="{{ query }}" dir="ltr" inputmode="tel" autocomplete="tel" placeholder="09123456789" class="flex-1 px-4 py-3 rounded-xl border border-black/10 bg-white focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none">
+      <button class="bg-accent text-primary font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">پیدا کن</button>
     </div>
+    <p class="text-xs text-darktext/50">برای حفظ حریم خصوصی، جست‌وجو با نام نداریم و شماره باید کامل وارد شود.</p>
+  </form>
 
-    {% if businesses %}
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {% for business in businesses %}
-                <div class="bg-white rounded-2xl shadow-md overflow-hidden hover:shadow-lg transition">
-                    {# ─── Header ─── #}
-                    <div class="bg-primary text-white p-5">
-                        <div class="flex items-center gap-4">
-                            {% if business.avatar %}
-                                <img src="{{ business.avatar.url }}"
-                                     alt="{{ business.name }}"
-                                     class="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-accent">
-                            {% else %}
-                                <div class="w-14 h-14 rounded-full bg-accent text-primary flex items-center justify-center text-xl font-bold shrink-0 leading-none">
-                                    {{ business.name|slice:":1" }}
-                                </div>
-                            {% endif %}
+  {% if search_error %}<div class="mt-4 bg-warning/10 border border-warning/30 rounded-xl p-3 text-sm font-bold text-darktext">{{ search_error }}</div>{% endif %}
 
-                            <div class="flex-1 min-w-0">
-                                <h2 class="font-bold text-lg truncate">{{ business.name }}</h2>
-                                <p class="text-xs text-white/70 mt-0.5">
-                                    {% if business.activity_type.icon %}{{ business.activity_type.icon }}{% endif %}
-                                    {{ business.activity_type.name }}
-                                </p>
-                                <p class="text-xs text-white/60 mt-0.5 truncate">
-                                    📍 {{ business.region }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+  {% if search_result %}
+  <div class="mt-4 rounded-2xl border-2 border-accent/40 bg-accent/5 p-4">
+    <div class="flex items-center gap-3">
+      {% if search_result.avatar %}<img src="{{ search_result.avatar.url }}" class="w-16 h-16 rounded-2xl object-cover" alt="{{ search_result.name }}">{% else %}<div class="w-16 h-16 rounded-2xl bg-primary text-white flex items-center justify-center text-2xl font-black">{{ search_result.name|slice:":1" }}</div>{% endif %}
+      <div class="flex-1 min-w-0"><h2 class="font-black text-primary text-lg truncate">{{ search_result.name }}</h2><p class="text-sm text-darktext/60">{% if search_result.activity_type.icon %}{{ search_result.activity_type.icon }}{% endif %} {{ search_result.activity_type.name }}</p><p class="text-xs text-darktext/50 mt-1">📍 {{ search_result.region }}</p></div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mt-4">
+      <a href="{% url 'business:public_profile' search_result.slug %}" class="text-center border border-black/10 bg-white text-primary font-bold py-2.5 rounded-xl">مشاهده پروفایل</a>
+      {% if search_is_saved %}<a href="{% url 'booking:book' search_result.slug %}" class="text-center bg-accent text-primary font-bold py-2.5 rounded-xl">رزرو نوبت</a>{% else %}<form method="post" action="{% url 'customers:add_business' search_result.id %}">{% csrf_token %}<button class="w-full bg-accent text-primary font-bold py-2.5 rounded-xl">⭐ ذخیره در لیست من</button></form>{% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
 
-                    {# ─── Body ─── #}
-                    <div class="p-4">
-                        <div class="flex items-center justify-between gap-2 mb-3 text-xs text-darktext/60">
-                            <span>
-                                📅 آخرین بازدید:
-                                {% if business.last_visit_at %}
-                                    {{ business.last_visit_at|to_jalali }}
-                                {% else %}
-                                    —
-                                {% endif %}
-                            </span>
-                            <span>🔁 {{ business.visits_count }} نوبت</span>
-                        </div>
+<div class="flex items-end justify-between gap-3 mb-3"><div><h2 class="text-lg font-black text-primary">ذخیره‌شده‌های من</h2><p class="text-xs text-darktext/50">مواردی که رزرو کردی یا خودت ذخیره کردی.</p></div><span class="text-xs bg-primary/10 text-primary rounded-full px-3 py-1.5 font-bold">{{ relations|length }} مورد</span></div>
 
-                        {# ─── دکمه‌ها ─── #}
-                        <div class="grid grid-cols-2 gap-2">
-                            <a href="{% url 'booking:book' business.slug %}"
-                               class="bg-accent text-primary font-bold py-2.5 rounded-xl hover:opacity-90 transition text-center text-sm">
-                                📅 رزرو نوبت
-                            </a>
-
-                            <a href="{% url 'business:public_profile' business.slug %}"
-                               class="bg-white text-primary font-bold py-2.5 rounded-xl hover:bg-cream transition border border-black/10 text-center text-sm">
-                                👁️ پروفایل
-                            </a>
-                        </div>
-
-                        {# ─── حذف از لیست ─── #}
-                        <form method="post"
-                              action="{% url 'customers:remove_business' business.id %}"
-                              class="mt-2"
-                              onsubmit="return confirm('«{{ business.name }}» از لیستت حذف بشه؟')">
-                            {% csrf_token %}
-                            <button type="submit"
-                                    class="w-full text-xs text-danger hover:bg-danger/10 py-2 rounded-lg transition font-bold">
-                                🗑️ حذف از لیست
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="bg-white rounded-2xl shadow-md p-10 text-center">
-            <div class="text-4xl mb-3">💼</div>
-            <h2 class="font-bold text-primary text-lg mb-2">
-                هنوز کسب‌وکاری توی لیستت نیست
-            </h2>
-            <p class="text-sm text-darktext/60 mb-5">
-                وقتی از یه کسب‌وکار نوبت بگیری، خودکار اینجا اضافه میشه.
-            </p>
-            <a href="{% url 'core:home' %}"
-               class="inline-block bg-accent text-primary font-bold px-6 py-3 rounded-xl hover:opacity-90 transition">
-                🏠 بازگشت به خانه
-            </a>
-        </div>
-    {% endif %}
-
+{% if relations %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+{% for relation in relations %}{% with business=relation.business %}
+<div class="bg-white rounded-3xl shadow-sm border border-black/5 overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition">
+  <div class="p-4 flex items-center gap-3 border-b border-black/5">
+    {% if business.avatar %}<img src="{{ business.avatar.url }}" class="w-14 h-14 rounded-2xl object-cover" alt="{{ business.name }}">{% else %}<div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-black">{{ business.name|slice:":1" }}</div>{% endif %}
+    <div class="flex-1 min-w-0"><div class="flex items-center gap-1.5"><h3 class="font-black text-primary truncate">{{ business.name }}</h3>{% if relation.is_favorite %}<span title="علاقه‌مندی">⭐</span>{% endif %}</div><p class="text-xs text-darktext/55 mt-1">{{ business.activity_type.name }} · {{ business.region }}</p></div>
+  </div>
+  <div class="p-4">
+    <div class="grid grid-cols-2 gap-2 mb-3 text-xs text-darktext/55"><div class="bg-cream rounded-xl p-2.5">🔁 {{ relation.visits_count }} نوبت</div><div class="bg-cream rounded-xl p-2.5">📅 {% if relation.last_visit_at %}{{ relation.last_visit_at|to_jalali }}{% else %}هنوز نوبتی نداری{% endif %}</div></div>
+    <div class="grid grid-cols-2 gap-2"><a href="{% url 'booking:book' business.slug %}" class="text-center bg-accent text-primary font-bold py-2.5 rounded-xl">📅 رزرو</a><a href="{% url 'business:public_profile' business.slug %}" class="text-center bg-primary/10 text-primary font-bold py-2.5 rounded-xl">پروفایل</a></div>
+    <div class="flex gap-2 mt-2">
+      <form method="post" action="{% url 'customers:toggle_favorite' business.id %}" class="flex-1">{% csrf_token %}<button class="w-full text-xs py-2 rounded-lg hover:bg-accent/10 transition">{% if relation.is_favorite %}☆ حذف از علاقه‌مندی{% else %}⭐ علاقه‌مندی{% endif %}</button></form>
+      <form method="post" action="{% url 'customers:remove_business' business.id %}" class="flex-1" onsubmit="return confirm('«{{ business.name }}» از لیستت حذف بشه؟')">{% csrf_token %}<button class="w-full text-xs text-danger py-2 rounded-lg hover:bg-danger/10 transition">🗑 حذف</button></form>
+    </div>
+  </div>
+</div>
+{% endwith %}{% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-3xl shadow-sm p-9 text-center border border-black/5"><div class="text-5xl mb-3">🔎</div><h3 class="font-black text-primary text-lg">هنوز کسی رو ذخیره نکردی</h3><p class="text-sm text-darktext/55 mt-2">شماره آرایشگرت رو بالا جست‌وجو کن یا بعد از اولین رزرو، خودش به این لیست اضافه می‌شه.</p></div>
+{% endif %}
 {% endblock %}

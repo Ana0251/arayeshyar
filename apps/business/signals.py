@@ -16,7 +16,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 
 from apps.accounts.constants import Role
-from apps.accounts.models import BusinessOwnerProfile
+from apps.accounts.models import BusinessOwnerProfile, CustomerProfile
 
 from .models import Business, Plan, Staff, Station
 
@@ -54,10 +54,11 @@ def on_business_created(
     if owner.role != Role.BUSINESS_OWNER:
         owner.role = Role.BUSINESS_OWNER
         owner.save(update_fields=["role"])
-        logger.info(f"Updated role for {owner.phone} to business_owner")
+        logger.info(f"Updated role for {owner.email} to business_owner")
 
     # ─── ۲. BusinessOwnerProfile ───
     BusinessOwnerProfile.objects.get_or_create(user=owner)
+    CustomerProfile.objects.filter(user=owner).delete()
 
     # ─── ۳. تنظیم plan_expires_at (اگه پلن غیرپولی و خالیه) ───
     if instance.plan and not instance.plan.is_paid and not instance.plan_expires_at:

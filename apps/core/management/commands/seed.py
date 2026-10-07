@@ -55,13 +55,10 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         self.stdout.write(self.style.MIGRATE_HEADING("🌱 شروع seed..."))
 
-        if not Plan.objects.exists():
-            self.stdout.write(
-                self.style.ERROR(
-                    "❌ هیچ Plan ای وجود نداره! اول `python manage.py migrate` بزن."
-                )
-            )
-            return
+        # پلن‌های پایه باید بعد از Reset کامل دیتابیس توسط خود seed ساخته شوند.
+        # قبلاً این داده‌ها در Data Migration جداگانه ساخته می‌شدند و با حذف
+        # migrationهای قدیمی دیگر وجود ندارند.
+        self._create_plans()
 
         if options["clear"]:
             self._clear_data()
@@ -76,6 +73,82 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("✅ Seed با موفقیت انجام شد!"))
         self._print_summary()
+
+
+    # ═══════════════════════════════════════════════════════════
+    #  Plans
+    # ═══════════════════════════════════════════════════════════
+
+    def _create_plans(self):
+        """ساخت/به‌روزرسانی پلن‌های پایه سیستم."""
+        self.stdout.write("💳 ساخت پلن‌های پایه...")
+
+        plans = [
+            {
+                "slug": "trial",
+                "name": "دوره تست",
+                "icon": "🎁",
+                "description": "دوره‌ی تست ۳۰ روزه رایگان",
+                "price": 0,
+                "duration_days": 30,
+                "features": [
+                    "همه‌ی امکانات پایه",
+                    "۳۰ روز رایگان",
+                ],
+                "order": 1,
+                "is_active": True,
+                "is_paid": False,
+                "has_pro_features": False,
+            },
+            {
+                "slug": "basic",
+                "name": "پلن پایه",
+                "icon": "⭐",
+                "description": "پلن اقتصادی برای شروع",
+                "price": 500_000,
+                "duration_days": 30,
+                "features": [
+                    "نوبت‌دهی آنلاین",
+                    "لینک اختصاصی + QR Code",
+                    "پنل کسب‌وکار",
+                    "مدیریت خدمات و ایستگاه‌ها",
+                    "برنامه هفتگی",
+                ],
+                "order": 2,
+                "is_active": True,
+                "is_paid": True,
+                "has_pro_features": False,
+            },
+            {
+                "slug": "pro",
+                "name": "پلن ویژه",
+                "icon": "💎",
+                "description": "پلن حرفه‌ای با همه‌ی امکانات",
+                "price": 1_200_000,
+                "duration_days": 30,
+                "features": [
+                    "همه‌ی امکانات پایه",
+                    "یادآور پیامکی",
+                    "لیست انتظار هوشمند",
+                    "گزارش درآمد",
+                    "ساعات طلایی",
+                    "مشتریان خواب‌رفته",
+                    "نوبت‌های تکراری",
+                ],
+                "order": 3,
+                "is_active": True,
+                "is_paid": True,
+                "has_pro_features": True,
+            },
+        ]
+
+        for data in plans:
+            Plan.objects.update_or_create(
+                slug=data["slug"],
+                defaults=data,
+            )
+
+        self.stdout.write(self.style.SUCCESS("   ✓ پلن‌های پایه آماده شدند"))
 
     # ═══════════════════════════════════════════════════════════
     #  Clear
@@ -261,11 +334,12 @@ class Command(BaseCommand):
         """آرایشگر علی (شخصی)."""
         user, created = User.objects.get_or_create(
             phone="09111111111",
-            defaults={"role": Role.BUSINESS_OWNER, "is_active": True},
+            defaults={"email": "ali@arayeshyar.test", "role": Role.BUSINESS_OWNER, "is_active": True},
         )
-        if created:
-            user.set_unusable_password()
-            user.save()
+        user.email = "ali@arayeshyar.test"
+        user.role = Role.BUSINESS_OWNER
+        user.set_password("123456")
+        user.save(update_fields=["email", "role", "password"])
 
         business, created = Business.objects.get_or_create(
             owner=user,
@@ -339,11 +413,12 @@ class Command(BaseCommand):
         """سالن زیبایی سارا."""
         user, created = User.objects.get_or_create(
             phone="09122222222",
-            defaults={"role": Role.BUSINESS_OWNER, "is_active": True},
+            defaults={"email": "sara@arayeshyar.test", "role": Role.BUSINESS_OWNER, "is_active": True},
         )
-        if created:
-            user.set_unusable_password()
-            user.save()
+        user.email = "sara@arayeshyar.test"
+        user.role = Role.BUSINESS_OWNER
+        user.set_password("123456")
+        user.save(update_fields=["email", "role", "password"])
 
         business, created = Business.objects.get_or_create(
             owner=user,
@@ -427,11 +502,12 @@ class Command(BaseCommand):
         """کلینیک لیزر رز."""
         user, created = User.objects.get_or_create(
             phone="09133333333",
-            defaults={"role": Role.BUSINESS_OWNER, "is_active": True},
+            defaults={"email": "rose@arayeshyar.test", "role": Role.BUSINESS_OWNER, "is_active": True},
         )
-        if created:
-            user.set_unusable_password()
-            user.save()
+        user.email = "rose@arayeshyar.test"
+        user.role = Role.BUSINESS_OWNER
+        user.set_password("123456")
+        user.save(update_fields=["email", "role", "password"])
 
         business, created = Business.objects.get_or_create(
             owner=user,
@@ -518,24 +594,26 @@ class Command(BaseCommand):
         self.stdout.write("👤 ساخت مشتری‌ها...")
 
         customers = [
-            {"phone": "09190000001", "name": "زهرا احمدی"},
-            {"phone": "09190000002", "name": "فاطمه رضایی"},
-            {"phone": "09190000003", "name": "مریم کریمی"},
+            {"email": "zahra@arayeshyar.test", "phone": "09190000001", "name": "زهرا احمدی"},
+            {"email": "fatemeh@arayeshyar.test", "phone": "09190000002", "name": "فاطمه رضایی"},
+            {"email": "maryam@arayeshyar.test", "phone": "09190000003", "name": "مریم کریمی"},
         ]
 
         for c in customers:
             user, created = User.objects.get_or_create(
                 phone=c["phone"],
-                defaults={"role": Role.CUSTOMER, "is_active": True},
+                defaults={"email": c["email"], "role": Role.CUSTOMER, "is_active": True},
             )
+            user.email = c["email"]
+            user.role = Role.CUSTOMER
+            user.set_password("123456")
+            user.save(update_fields=["email", "role", "password"])
+
+            profile = user.customer_profile
+            profile.full_name = c["name"]
+            profile.save(update_fields=["full_name", "updated_at"])
+
             if created:
-                user.set_unusable_password()
-                user.save()
-
-                profile = user.customer_profile
-                profile.full_name = c["name"]
-                profile.save()
-
                 self.stdout.write(f"   + {c['name']} ({c['phone']})")
 
     # ═══════════════════════════════════════════════════════════
@@ -565,9 +643,9 @@ class Command(BaseCommand):
             )
         self.stdout.write("")
 
-        self.stdout.write(self.style.MIGRATE_HEADING("🔑 لاگین:"))
+        self.stdout.write(self.style.MIGRATE_HEADING("🔑 حساب‌های تستی — رمز همه: 123456"))
         self.stdout.write("   صاحب آرایشگر علی: 09111111111")
-        self.stdout.write("   صاحب سالن سارا:  09122222222")
-        self.stdout.write("   صاحب لیزر رز:   09133333333")
-        self.stdout.write("   مشتری زهرا:     09190000001")
+        self.stdout.write("   صاحب سالن سارا:   09122222222")
+        self.stdout.write("   صاحب لیزر رز:     09133333333")
+        self.stdout.write("   مشتری زهرا:       09190000001")
         self.stdout.write("")

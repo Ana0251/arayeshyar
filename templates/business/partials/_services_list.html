@@ -12,6 +12,9 @@
                         {% endif %}
                     </div>
                     <div class="text-xs text-darktext/70 mt-1 flex items-center gap-3 flex-wrap">
+                        {% if business.is_salon %}
+                            <span>🚪 {{ svc.station.name }}</span>
+                        {% endif %}
                         <span>⏱️ {{ svc.duration }} دقیقه</span>
                         {% if svc.price %}
                             <span class="font-bold">💰 {{ svc.price_display }}</span>

@@ -69,21 +69,27 @@ def manage_services(request: HttpRequest) -> HttpResponse:
 
     # ─── POST: افزودن ───
     if request.method == "POST":
-        form = ServiceForm(request.POST)
+        form = ServiceForm(
+            request.POST,
+            business=business,
+            show_station=business.is_salon,
+        )
 
         if form.is_valid():
             svc = form.save(commit=False)
             svc.business = business
 
-            if selected_station:
-                svc.station = selected_station
-            elif not business.is_salon and default_station:
+            if business.is_salon:
+                # برای سالن، اتاق مستقیماً از فرم انتخاب می‌شود.
+                # این کار وابستگی ثبت خدمت به فیلتر GET بالای صفحه را حذف می‌کند.
+                svc.station = form.cleaned_data["station"]
+            elif default_station:
                 svc.station = default_station
-            elif business.is_salon and not selected_station:
+            else:
                 if is_htmx(request):
-                    return htmx_error(request, _("لطفاً اول یه ایستگاه انتخاب کن."))
-                messages.error(request, _("لطفاً اول یه ایستگاه انتخاب کن."))
-                return redirect("business:manage_services")
+                    return htmx_error(request, _("برای ثبت خدمت، ابتدا محل کار را ایجاد کن."))
+                messages.error(request, _("برای ثبت خدمت، ابتدا محل کار را ایجاد کن."))
+                return redirect("business:manage_stations")
 
             if Service.objects.filter(
                 business=business,
@@ -129,7 +135,10 @@ def manage_services(request: HttpRequest) -> HttpResponse:
                 return htmx_error(request, _("لطفاً خطاها رو برطرف کن."))
             messages.error(request, _("لطفاً خطاها رو برطرف کن."))
     else:
-        form = ServiceForm()
+        form = ServiceForm(
+            business=business,
+            show_station=business.is_salon,
+        )
 
     return render(
         request,
@@ -262,14 +271,23 @@ def edit_service(
 
         # ─── ویرایش خدمت ───
         else:
-            form = ServiceForm(request.POST, instance=service)
+            form = ServiceForm(
+                request.POST,
+                instance=service,
+                business=business,
+                show_station=False,
+            )
 
             if form.is_valid():
                 form.save()
                 messages.success(request, _("خدمت به‌روزرسانی شد. ✅"))
                 return redirect("business:manage_services")
     else:
-        form = ServiceForm(instance=service)
+        form = ServiceForm(
+            instance=service,
+            business=business,
+            show_station=False,
+        )
 
     # ═══════════════════════════════════════════════════════════
     #  GET

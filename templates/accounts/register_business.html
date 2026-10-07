@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}ساخت حساب آرایشگر / سالن — آرایشیار{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-6 sm:mt-10">
+  <div class="text-center mb-7">
+    <div class="w-16 h-16 rounded-full bg-accent flex items-center justify-center text-3xl mx-auto mb-3">💈</div>
+    <h1 class="text-2xl font-bold text-primary">ساخت حساب آرایشگر / سالن</h1>
+    <p class="text-sm text-darktext/60 mt-2 leading-6">فعلاً ورود با شماره موبایل و رمز انجام می‌شه. ایمیل اختیاریه و بعداً برای بازیابی یا اعلان‌ها می‌تونیم ازش استفاده کنیم.</p>
+  </div>
+
+  <form method="post" class="bg-white rounded-2xl shadow-md border border-black/5 p-5 sm:p-6 space-y-4">
+    {% csrf_token %}
+    {% for field in form %}
+      <div>
+        <label class="block text-sm font-bold text-darktext mb-1.5">{{ field.label }}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="text-xs text-darktext/45 mt-1.5">{{ field.help_text }}</p>{% endif %}
+        {% if field.errors %}<p class="text-danger text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+      </div>
+    {% endfor %}
+    {% if form.non_field_errors %}
+      <div class="bg-danger/10 border border-danger/20 rounded-xl p-3 text-sm text-danger">{{ form.non_field_errors.0 }}</div>
+    {% endif %}
+    <button type="submit" class="w-full bg-accent text-primary font-bold py-3.5 rounded-xl hover:opacity-90 transition">ساخت حساب و ادامه ثبت‌نام</button>
+  </form>
+  <div class="text-center mt-4 text-sm text-darktext/60">قبلاً حساب ساختی؟ <a href="{% url 'accounts:login' %}" class="text-accent font-bold">وارد شو</a></div>
+</div>
+{% endblock %}

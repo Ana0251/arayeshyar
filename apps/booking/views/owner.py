@@ -8,6 +8,8 @@ from django.contrib import messages
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+
+from apps.core.utils.dates import jalali_date_and_time
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.http import require_http_methods, require_POST
 
@@ -207,8 +209,8 @@ def add_manual_appointment(request: HttpRequest) -> HttpResponse:
                     _("نوبت %(name)s برای %(date)s ساعت %(time)s ثبت شد. ✅")
                     % {
                         "name": customer.display_name,
-                        "date": appointment.start_at.strftime("%Y/%m/%d"),
-                        "time": appointment.start_at.strftime("%H:%M"),
+                        "date": jalali_date_and_time(appointment.start_at)[0],
+                        "time": jalali_date_and_time(appointment.start_at)[1],
                     },
                 )
                 return redirect("business:dashboard")

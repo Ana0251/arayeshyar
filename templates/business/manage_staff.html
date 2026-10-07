@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}کارمندها — {{ business.name }}{% endblock %}
+
+{% block content %}
+<a href="{% url 'business:dashboard' %}" class="inline-flex items-center gap-1 text-sm text-darktext/60 hover:text-accent mb-4 transition">← بازگشت به داشبورد</a>
+
+<div class="mb-5">
+  <h1 class="text-2xl font-bold text-primary">👥 مدیریت کارمندها</h1>
+  <p class="text-sm text-darktext/60 mt-1">اول کارمند را اضافه کن، بعد خدمات و اتاق‌های کاری او را مشخص کن و در مرحله بعد شیفتش را بچین.</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
+  <div class="bg-white rounded-2xl p-4 shadow-sm border border-black/5">
+    <div class="text-2xl mb-2">1️⃣</div><div class="font-bold text-primary">مشخصات کارمند</div><p class="text-xs text-darktext/60 mt-1">نام، موبایل، عکس و تخصص.</p>
+  </div>
+  <div class="bg-white rounded-2xl p-4 shadow-sm border border-black/5">
+    <div class="text-2xl mb-2">2️⃣</div><div class="font-bold text-primary">خدمت + اتاق</div><p class="text-xs text-darktext/60 mt-1">هر خدمت از قبل به یک اتاق وصل است؛ فقط خدمت را انتخاب کن.</p>
+  </div>
+  <div class="bg-white rounded-2xl p-4 shadow-sm border border-black/5">
+    <div class="text-2xl mb-2">3️⃣</div><div class="font-bold text-primary">شیفت کاری</div><p class="text-xs text-darktext/60 mt-1">بعد از ذخیره، ساعت حضور کارمند را برای همان اتاق‌ها تعیین کن.</p>
+  </div>
+</div>
+
+<div class="bg-white rounded-2xl shadow-md mb-6 overflow-visible">
+  <div class="bg-primary text-white px-5 py-4 rounded-t-2xl flex items-center justify-between gap-3">
+    <div><h2 class="font-bold">➕ افزودن کارمند</h2><p class="text-xs text-white/70 mt-1">اتاق به‌صورت خودکار از روی خدمت مشخص می‌شود.</p></div>
+    <a href="{% url 'business:manage_services' %}" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-2 rounded-lg transition">مدیریت خدمات</a>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="p-5 space-y-5">
+    {% csrf_token %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div><label class="block text-sm font-bold mb-1.5">نام و نام خانوادگی *</label>{{ form.name }}{% if form.name.errors %}<p class="text-danger text-xs mt-1">{{ form.name.errors.0 }}</p>{% endif %}</div>
+      <div><label class="block text-sm font-bold mb-1.5">شماره موبایل</label>{{ form.phone }}{% if form.phone.errors %}<p class="text-danger text-xs mt-1">{{ form.phone.errors.0 }}</p>{% endif %}</div>
+      <div><label class="block text-sm font-bold mb-1.5">عکس</label>{{ form.avatar }}</div>
+      <div class="sm:col-span-2"><label class="block text-sm font-bold mb-1.5">تخصص / توضیح کوتاه</label>{{ form.bio }}</div>
+    </div>
+
+    <div>
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div><h3 class="font-bold text-primary">✂️ چه خدماتی ارائه می‌دهد؟</h3><p class="text-xs text-darktext/60 mt-1">خدمات بر اساس اتاق گروه‌بندی شده‌اند؛ پس لازم نیست اتاق را جدا انتخاب کنی.</p></div>
+      </div>
+      {% if service_groups %}
+        <div class="space-y-3">
+          {% for group in service_groups %}
+            <div class="rounded-2xl border border-black/10 overflow-hidden">
+              <div class="bg-cream px-4 py-2.5 font-bold text-sm text-primary">📍 {{ group.station.name }}</div>
+              <div class="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {% for service in group.services %}
+                  <label class="flex items-center gap-3 rounded-xl border border-black/5 p-3 hover:border-accent hover:bg-accent/5 cursor-pointer transition">
+                    <input type="checkbox" name="services" value="{{ service.id }}" class="w-5 h-5 rounded text-accent" {% if service.id in selected_service_ids %}checked{% endif %}>
+                    <span class="flex-1"><span class="font-bold text-sm text-primary block">{{ service.name }}</span><span class="text-xs text-darktext/55">{{ service.duration }} دقیقه{% if service.price %} · {{ service.price }} تومان{% endif %}</span></span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="bg-warning/10 border border-warning/30 rounded-xl p-4 text-sm">هنوز خدمتی تعریف نشده. اول <a class="font-bold underline" href="{% url 'business:manage_services' %}">خدمت اضافه کن</a>.</div>
+      {% endif %}
+      {% if form.services.errors %}<p class="text-danger text-xs mt-2">{{ form.services.errors.0 }}</p>{% endif %}
+    </div>
+
+    <div class="flex items-center gap-2">{{ form.is_active }}<label class="text-sm font-bold">کارمند فعال باشد</label></div>
+    <button type="submit" class="w-full bg-accent text-primary font-bold py-3 rounded-xl hover:opacity-90 transition">ذخیره کارمند</button>
+  </form>
+</div>
+
+<div class="flex items-center justify-between gap-3 mb-3">
+  <div><h2 class="text-lg font-bold text-primary">کارمندهای سالن</h2><p class="text-xs text-darktext/55">برای تعریف ساعت حضور، بعد از اتصال خدمت از «شیفت‌ها» استفاده کن.</p></div>
+  <a href="{% url 'business:manage_staff_schedules' %}" class="bg-primary text-white text-sm font-bold px-4 py-2.5 rounded-xl hover:opacity-90">⏰ مدیریت شیفت‌ها</a>
+</div>
+
+{% if staff_members %}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+  {% for staff in staff_members %}
+  <div class="bg-white rounded-2xl shadow-sm border border-black/5 p-4">
+    <div class="flex items-start gap-3">
+      {% if staff.avatar %}<img src="{{ staff.avatar.url }}" class="w-14 h-14 rounded-2xl object-cover" alt="{{ staff.name }}">{% else %}<div class="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-xl font-bold">{{ staff.name|slice:":1" }}</div>{% endif %}
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2 flex-wrap"><h3 class="font-bold text-primary text-lg">{{ staff.name }}</h3>{% if staff.is_owner %}<span class="text-[11px] bg-accent/20 text-primary rounded-full px-2 py-1 font-bold">صاحب سالن</span>{% endif %}{% if staff.is_active %}<span class="text-[11px] bg-success/10 text-success rounded-full px-2 py-1 font-bold">فعال</span>{% else %}<span class="text-[11px] bg-danger/10 text-danger rounded-full px-2 py-1 font-bold">غیرفعال</span>{% endif %}</div>
+        {% if staff.bio %}<p class="text-sm text-darktext/60 mt-1">{{ staff.bio }}</p>{% endif %}
+        {% if staff.phone %}<p class="text-xs text-darktext/50 mt-1" dir="ltr">{{ staff.phone }}</p>{% endif %}
+      </div>
+    </div>
+    <div class="mt-4">
+      <div class="text-xs font-bold text-darktext/55 mb-2">خدمات و اتاق‌ها</div>
+      <div class="flex flex-wrap gap-1.5">
+        {% for rel in staff.staff_services.all %}{% if rel.is_active %}<span class="text-xs bg-cream rounded-lg px-2.5 py-1.5">{{ rel.service.name }} · {{ rel.station.name }}</span>{% endif %}{% empty %}<span class="text-xs text-warning">هنوز خدمتی به این کارمند وصل نشده.</span>{% endfor %}
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 mt-4">
+      <a href="{% url 'business:edit_staff' staff.id %}" class="text-center bg-primary/10 text-primary font-bold py-2.5 rounded-xl hover:bg-primary hover:text-white transition">✏️ ویرایش</a>
+      {% if not staff.is_owner %}<form method="post" action="{% url 'business:toggle_staff' staff.id %}">{% csrf_token %}<button class="w-full {% if staff.is_active %}bg-danger/10 text-danger{% else %}bg-success/10 text-success{% endif %} font-bold py-2.5 rounded-xl transition">{% if staff.is_active %}غیرفعال کردن{% else %}فعال کردن{% endif %}</button></form>{% else %}<a href="{% url 'business:manage_staff_schedules' %}" class="text-center bg-cream text-primary font-bold py-2.5 rounded-xl">⏰ شیفت‌ها</a>{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="bg-white rounded-2xl p-8 text-center shadow-sm"><div class="text-4xl mb-3">👥</div><h3 class="font-bold text-primary">هنوز کارمندی اضافه نشده</h3><p class="text-sm text-darktext/55 mt-2">از فرم بالا اولین کارمند را اضافه کن.</p></div>
+{% endif %}
+{% endblock %}

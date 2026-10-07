@@ -7,25 +7,26 @@ import logging
 from django.conf import settings
 from django.utils.module_loading import import_string
 
+from apps.accounts import apps
+
 from .base import SMSBackend
 
 logger = logging.getLogger(__name__)
 
 
 def get_sms_backend() -> SMSBackend:
-    """
-    برگرداندن backend فعال.
 
-    ─── از settings: ───
+
+    
     SMS_BACKEND = "apps.notifications.backends.console.ConsoleSMSBackend"
 
-    ─── Default: ───
+    
     ConsoleSMSBackend
-    """
+    
     backend_path = getattr(
         settings,
-        "SMS_BACKEND",
-        "apps.notifications.backends.console.ConsoleSMSBackend",
+        SMS_BACKEND,
+        apps.notifications.backends.console.ConsoleSMSBackend,
     )
 
     try:

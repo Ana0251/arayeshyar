@@ -78,4 +78,5 @@ def site_context(request: HttpRequest) -> dict[str, Any]:
         "site_whatsapp": getattr(settings, "SUPPORT_WHATSAPP", ""),
         "site_telegram": getattr(settings, "SUPPORT_TELEGRAM", ""),
         "site_phone": getattr(settings, "SUPPORT_PHONE", ""),
+        "google_site_verification": getattr(settings, "GOOGLE_SITE_VERIFICATION", ""),
     }

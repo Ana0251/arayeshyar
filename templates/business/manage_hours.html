@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}برنامه هفتگی — {{ business.name }}{% endblock %}
+{% block title %}{% if business.is_salon %}ساعت کاری سالن{% else %}برنامه هفتگی{% endif %} — {{ business.name }}{% endblock %}
 
 {% block content %}
 
@@ -10,15 +10,15 @@
     </a>
 
     <div class="mb-5">
-        <h1 class="text-2xl font-bold text-primary">🗓️ برنامه هفتگی</h1>
+        <h1 class="text-2xl font-bold text-primary">🗓️ {% if business.is_salon %}ساعت کاری کلی سالن{% else %}برنامه هفتگی{% endif %}</h1>
         <p class="text-sm text-darktext/60 mt-1">
-            برای هر روز هفته، ساعت کاری رو تعیین کن.
+            {% if business.is_salon %}ساعت باز و بسته بودن کل سالن را تعیین کن. شیفت هر کارمند فقط داخل این بازه قابل رزرو است.{% else %}برای هر روز هفته، ساعت کاری رو تعیین کن.{% endif %}
         </p>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-md overflow-hidden mb-5">
+    <div class="bg-white rounded-2xl shadow-md overflow-visible mb-5">
         <div class="bg-primary text-white px-5 py-3">
-            <h2 class="font-bold">➕ افزودن برنامه جدید</h2>
+            <h2 class="font-bold">➕ {% if business.is_salon %}افزودن ساعت فعالیت سالن{% else %}افزودن برنامه جدید{% endif %}</h2>
         </div>
 
         <form method="post"
@@ -57,7 +57,7 @@
         </form>
     </div>
 
-    <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-md overflow-visible">
         <div class="bg-cream px-5 py-3 border-b border-black/5">
             <h2 class="font-bold text-primary">📋 برنامه‌های فعلی</h2>
         </div>

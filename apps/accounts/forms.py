@@ -1,149 +1,188 @@
-"""
-فرم‌های اپ accounts.
-
-شامل:
-- LoginPhoneForm  → ورود با شماره موبایل
-- LoginOTPForm    → تأیید کد ۶ رقمی
-"""
-
+"""فرم‌های ورود و ساخت حساب با شماره موبایل و رمز عبور."""
 from django import forms
+from django.contrib.auth.password_validation import validate_password
 from django.utils.translation import gettext_lazy as _
-
 from apps.core.utils.phone import normalize_phone
+from .models import User
 
-from .constants import OTP_LENGTH
+INPUT_CLASS = (
+    "w-full px-4 py-3 rounded-xl border border-black/10 bg-white "
+    "focus:border-accent focus:ring-2 focus:ring-accent/20 outline-none transition"
+)
 
 
-# ═══════════════════════════════════════════════════════════════
-#  LoginPhoneForm
-# ═══════════════════════════════════════════════════════════════
-
-
-class LoginPhoneForm(forms.Form):
-    """
-    فرم ورود با شماره موبایل.
-
-    ─── مراحل: ───
-    1. کاربر شماره رو وارد می‌کنه
-    2. اعتبارسنجی فرمت (09XXXXXXXXX)
-    3. نرمال‌سازی
-    4. ارسال OTP
-    """
-
+class PhonePasswordLoginForm(forms.Form):
     phone = forms.CharField(
-        label=_("شماره موبایل"),
-        max_length=20,
-        widget=forms.TextInput(
-            attrs={
-                "type": "tel",
-                "inputmode": "numeric",
-                "autocomplete": "tel",
-                "autofocus": True,
-                "placeholder": "09123456789",
-                "dir": "ltr",
-                "class": (
-                    "w-full px-4 py-3 rounded-xl border border-black/10 "
-                    "bg-white text-center text-lg font-bold tracking-wider "
-                    "font-mono focus:border-accent focus:ring-2 "
-                    "focus:ring-accent/20 outline-none transition"
-                ),
-            }
-        ),
+        label=_("شماره موبایل"), max_length=15,
+        widget=forms.TextInput(attrs={
+            "autocomplete": "tel", "autofocus": True, "placeholder": "09123456789",
+            "dir": "ltr", "inputmode": "numeric", "class": INPUT_CLASS,
+        }),
+    )
+    password = forms.CharField(
+        label=_("رمز عبور"), min_length=6,
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "current-password", "placeholder": "حداقل ۶ کاراکتر", "class": INPUT_CLASS,
+        }),
     )
 
-    def clean_phone(self) -> str:
-        """نرمال‌سازی و اعتبارسنجی شماره."""
-        raw = self.cleaned_data.get("phone", "").strip()
-        normalized = normalize_phone(raw)
-
-        if not normalized:
-            raise forms.ValidationError(
-                _("شماره موبایل نامعتبره. فرمت صحیح: 09XXXXXXXXX"),
-                code="invalid_phone",
-            )
-
-        return normalized
+    def clean_phone(self):
+        phone = normalize_phone(self.cleaned_data.get("phone"))
+        if not phone:
+            raise forms.ValidationError(_("شماره موبایل معتبر نیست."))
+        return phone
 
 
-# ═══════════════════════════════════════════════════════════════
-#  LoginOTPForm
-# ═══════════════════════════════════════════════════════════════
-
-
-class LoginOTPForm(forms.Form):
-    """
-    فرم تأیید کد ۶ رقمی.
-
-    ─── نکته: ───
-    کد از session میاد (چون کاربر بعد از login_phone به اینجا redirect میشه).
-    """
-
-    code = forms.CharField(
-        label=_("کد تأیید"),
-        max_length=OTP_LENGTH,
-        min_length=OTP_LENGTH,
-        widget=forms.TextInput(
-            attrs={
-                "type": "text",
-                "inputmode": "numeric",
-                "autocomplete": "one-time-code",
-                "autofocus": True,
-                "placeholder": "–" * OTP_LENGTH,
-                "dir": "ltr",
-                "maxlength": str(OTP_LENGTH),
-                "pattern": "[0-9]*",
-                "class": (
-                    "w-full px-4 py-4 rounded-xl border-2 border-black/10 "
-                    "bg-white text-center text-3xl font-bold "
-                    "tracking-[0.5em] font-mono focus:border-accent "
-                    "focus:ring-2 focus:ring-accent/20 outline-none transition"
-                ),
-            }
-        ),
+class CustomerSignupForm(forms.Form):
+    full_name = forms.CharField(
+        label=_("نام و نام خانوادگی"), max_length=100,
+        widget=forms.TextInput(attrs={
+            "autocomplete": "name", "placeholder": "مثلاً علی رضایی", "class": INPUT_CLASS,
+        }),
+    )
+    phone = forms.CharField(
+        label=_("شماره موبایل"), max_length=15,
+        widget=forms.TextInput(attrs={
+            "autocomplete": "tel", "placeholder": "09123456789",
+            "dir": "ltr", "inputmode": "numeric", "class": INPUT_CLASS,
+        }),
+    )
+    email = forms.EmailField(
+        label=_("ایمیل (اختیاری)"), required=False,
+        widget=forms.EmailInput(attrs={
+            "autocomplete": "email", "placeholder": "name@example.com", "dir": "ltr", "class": INPUT_CLASS,
+        }),
+    )
+    password = forms.CharField(
+        label=_("رمز عبور"), min_length=6,
+        help_text=_("حداقل ۶ کاراکتر؛ برای ورودهای بعدی همین رمز رو استفاده می‌کنی."),
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "new-password", "placeholder": "حداقل ۶ کاراکتر", "class": INPUT_CLASS,
+        }),
+    )
+    password_confirm = forms.CharField(
+        label=_("تکرار رمز عبور"), min_length=6,
+        widget=forms.PasswordInput(attrs={
+            "autocomplete": "new-password", "placeholder": "رمز رو دوباره وارد کن", "class": INPUT_CLASS,
+        }),
     )
 
-    def clean_code(self) -> str:
-        """اعتبارسنجی کد."""
-        code = self.cleaned_data.get("code", "").strip()
+    def clean_phone(self):
+        phone = normalize_phone(self.cleaned_data.get("phone"))
+        if not phone:
+            raise forms.ValidationError(_("شماره موبایل معتبر نیست."))
+        if User.objects.filter(phone=phone).exists():
+            raise forms.ValidationError(_("این شماره قبلاً حساب دارد؛ از صفحه ورود استفاده کن."))
+        return phone
 
-        # ─── حذف فاصله‌ها ───
-        code = code.replace(" ", "").replace("-", "")
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(_("این ایمیل قبلاً برای حساب دیگری ثبت شده."))
+        return email or None
 
-        # ─── تبدیل ارقام فارسی/عربی به لاتین ───
-        code = _persian_to_latin(code)
-
-        if not code:
-            raise forms.ValidationError(
-                _("کد تأیید الزامیه."),
-                code="required_code",
-            )
-
-        if not code.isdigit():
-            raise forms.ValidationError(
-                _("کد باید فقط شامل اعداد باشه."),
-                code="invalid_code",
-            )
-
-        if len(code) != OTP_LENGTH:
-            raise forms.ValidationError(
-                _("کد باید %(len)s رقم باشه.") % {"len": OTP_LENGTH},
-                code="invalid_length",
-            )
-
-        return code
+    def clean(self):
+        cleaned = super().clean()
+        p1, p2 = cleaned.get("password"), cleaned.get("password_confirm")
+        if p1 and p2 and p1 != p2:
+            self.add_error("password_confirm", _("تکرار رمز با رمز عبور یکی نیست."))
+        return cleaned
 
 
-# ═══════════════════════════════════════════════════════════════
-#  Helpers
-# ═══════════════════════════════════════════════════════════════
-
-
-def _persian_to_latin(text: str) -> str:
-    """تبدیل ارقام فارسی/عربی به لاتین."""
-    persian = "۰۱۲۳۴۵۶۷۸۹"
-    arabic = "٠١٢٣٤٥٦٧٨٩"
-    latin = "0123456789"
-
-    return text.translate(
-        str.maketrans(persian + arabic, latin + latin)
+class BusinessSignupForm(forms.Form):
+    phone = forms.CharField(
+        label=_("شماره موبایل"), max_length=15,
+        widget=forms.TextInput(attrs={
+            "autocomplete": "tel", "autofocus": True, "placeholder": "09123456789",
+            "dir": "ltr", "inputmode": "numeric", "class": INPUT_CLASS,
+        }),
     )
+    email = forms.EmailField(
+        label=_("ایمیل (اختیاری)"), required=False,
+        widget=forms.EmailInput(attrs={
+            "autocomplete": "email", "placeholder": "name@example.com", "dir": "ltr", "class": INPUT_CLASS,
+        }),
+    )
+    password = forms.CharField(
+        label=_("رمز عبور"), min_length=6,
+        help_text=_("حداقل ۶ کاراکتر؛ لازم نیست حتماً علامت یا حرف بزرگ داشته باشه."),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "placeholder": "حداقل ۶ کاراکتر", "class": INPUT_CLASS}),
+    )
+    password_confirm = forms.CharField(
+        label=_("تکرار رمز عبور"), min_length=6,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "placeholder": "رمز رو دوباره وارد کن", "class": INPUT_CLASS}),
+    )
+
+    def clean_phone(self):
+        phone = normalize_phone(self.cleaned_data.get("phone"))
+        if not phone:
+            raise forms.ValidationError(_("شماره موبایل معتبر نیست."))
+        if User.objects.filter(phone=phone).exists():
+            raise forms.ValidationError(_("این شماره قبلاً حساب دارد؛ از صفحه ورود استفاده کن."))
+        return phone
+
+    def clean_email(self):
+        email = (self.cleaned_data.get("email") or "").strip().lower()
+        if email and User.objects.filter(email__iexact=email).exists():
+            raise forms.ValidationError(_("این ایمیل قبلاً برای حساب دیگری ثبت شده."))
+        return email or None
+
+    def clean(self):
+        cleaned = super().clean()
+        p1, p2 = cleaned.get("password"), cleaned.get("password_confirm")
+        if p1 and p2 and p1 != p2:
+            self.add_error("password_confirm", _("تکرار رمز با رمز عبور یکی نیست."))
+        return cleaned
+
+
+class ChangePasswordForm(forms.Form):
+    current_password = forms.CharField(
+        label=_("رمز فعلی"),
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password", "class": INPUT_CLASS}),
+    )
+    new_password = forms.CharField(
+        label=_("رمز جدید"), min_length=6,
+        help_text=_("حداقل ۶ کاراکتر."),
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": INPUT_CLASS}),
+    )
+    new_password_confirm = forms.CharField(
+        label=_("تکرار رمز جدید"), min_length=6,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": INPUT_CLASS}),
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user = user
+
+    def clean_current_password(self):
+        value = self.cleaned_data.get("current_password")
+        if not self.user.check_password(value):
+            raise forms.ValidationError(_("رمز فعلی درست نیست."))
+        return value
+
+    def clean(self):
+        cleaned = super().clean()
+        p1 = cleaned.get("new_password")
+        p2 = cleaned.get("new_password_confirm")
+        if p1 and p2 and p1 != p2:
+            self.add_error("new_password_confirm", _("تکرار رمز جدید با رمز جدید یکی نیست."))
+        if p1 and self.user.check_password(p1):
+            self.add_error("new_password", _("رمز جدید باید با رمز فعلی متفاوت باشد."))
+        return cleaned
+
+
+class AdminResetPasswordForm(forms.Form):
+    new_password = forms.CharField(
+        label=_("رمز جدید"), min_length=6,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": INPUT_CLASS}),
+    )
+    new_password_confirm = forms.CharField(
+        label=_("تکرار رمز جدید"), min_length=6,
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password", "class": INPUT_CLASS}),
+    )
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("new_password") and cleaned.get("new_password") != cleaned.get("new_password_confirm"):
+            self.add_error("new_password_confirm", _("تکرار رمز با رمز جدید یکی نیست."))
+        return cleaned
